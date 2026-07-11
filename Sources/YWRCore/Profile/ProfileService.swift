@@ -55,6 +55,7 @@ public struct FileProfileStore: ProfileStore {
     }
 
     public func save(_ profile: CapturedProfile) throws {
+        guard Paths.isValidName(profile.name) else { throw NameError.invalid(profile.name) }
         let url = paths.profileFile(name: profile.name)
         try FileManager.default.createDirectory(at: paths.profilesDir, withIntermediateDirectories: true)
         let data = try encoder.encode(profile)
@@ -62,6 +63,7 @@ public struct FileProfileStore: ProfileStore {
     }
 
     public func load(name: String) throws -> CapturedProfile {
+        guard Paths.isValidName(name) else { throw NameError.invalid(name) }
         let url = paths.profileFile(name: name)
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw ProfileStoreError.notFound(name: name)
@@ -82,7 +84,8 @@ public struct FileProfileStore: ProfileStore {
     }
 
     public func exists(name: String) -> Bool {
-        FileManager.default.fileExists(atPath: paths.profileFile(name: name).path)
+        guard Paths.isValidName(name) else { return false }
+        return FileManager.default.fileExists(atPath: paths.profileFile(name: name).path)
     }
 }
 

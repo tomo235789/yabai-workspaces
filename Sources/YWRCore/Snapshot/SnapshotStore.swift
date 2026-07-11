@@ -63,12 +63,14 @@ public struct FileSnapshotStore: SnapshotStore {
     }
 
     public func save(_ snapshot: Snapshot) throws {
+        guard Paths.isValidName(snapshot.name) else { throw NameError.invalid(snapshot.name) }
         try fileManager.createDirectory(at: paths.snapshotsDir, withIntermediateDirectories: true)
         let data = try encoder.encode(snapshot)
         try data.write(to: paths.snapshotFile(name: snapshot.name), options: .atomic)
     }
 
     public func load(name: String) throws -> Snapshot {
+        guard Paths.isValidName(name) else { throw NameError.invalid(name) }
         let url = paths.snapshotFile(name: name)
         guard fileManager.fileExists(atPath: url.path) else {
             throw SnapshotStoreError.notFound(name: name)
@@ -78,7 +80,8 @@ public struct FileSnapshotStore: SnapshotStore {
     }
 
     public func exists(name: String) -> Bool {
-        fileManager.fileExists(atPath: paths.snapshotFile(name: name).path)
+        guard Paths.isValidName(name) else { return false }
+        return fileManager.fileExists(atPath: paths.snapshotFile(name: name).path)
     }
 
     public func list() throws -> [SnapshotSummary] {

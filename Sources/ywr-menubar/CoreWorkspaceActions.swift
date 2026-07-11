@@ -1,5 +1,6 @@
 import Foundation
 import YWRCore
+import YWRMenuUI
 
 /// Concrete `WorkspaceActions` backed by YWRCore — the composition root for the
 /// menu-bar app. Implemented as an `actor` so its blocking work (yabai

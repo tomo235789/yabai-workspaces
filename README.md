@@ -17,6 +17,10 @@ Implemented:
 - **Menu-bar app (`ywr-menubar`)**: a SwiftUI `MenuBarExtra` to save the current
   layout and trigger auto-restore, themed from an external file.
 
+## Documentation
+
+- **[Usage guide](docs/usage.md)** — install, core workflow, auto-restore, theming, troubleshooting ([日本語](docs/usage.ja.md))
+
 ## Requirements
 
 This tool requires yabai to be installed and configured separately.
@@ -73,8 +77,19 @@ used. Schema:
 
 ```sh
 swift build                # builds the `ywr` binary
-swift test                 # runs the XCTest suite (requires Xcode)
+swift test                 # unit tests — XCTest suite (requires Xcode)
+bash Tests/e2e/run.sh      # end-to-end: runs the real binary against a fake yabai
+bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
 ```
+
+`scripts/report.sh` runs the unit and e2e suites and renders the menu-bar UI to
+PNGs (headlessly, via `ImageRenderer`), then assembles a single self-contained
+`build/report/report.html` with the results and embedded screenshots.
+
+The e2e suite (`Tests/e2e/`) drives the actual `ywr` binary as a black box
+against a fake `yabai` on `PATH` — the CLI analogue of a Playwright browser
+test — asserting on stdout, exit codes, saved JSON, and the control commands
+ywr sends to yabai.
 
 ## Architecture
 
