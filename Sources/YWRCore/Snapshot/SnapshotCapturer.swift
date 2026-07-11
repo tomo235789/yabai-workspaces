@@ -44,7 +44,8 @@ public struct SnapshotCapturer: SnapshotCapturing {
                         sticky: window.isSticky,
                         minimized: window.isMinimized,
                         fullscreen: window.isNativeFullscreen
-                    )
+                    ),
+                    focused: window.hasFocus
                 )
             }
 

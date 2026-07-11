@@ -80,6 +80,13 @@ public struct SnapshotRestorer: Sendable {
                 status: .unmatched
             ))
         }
+
+        // 5. Restore focus to the window that had it at capture time (best
+        // effort, done last so it isn't stolen by subsequent moves).
+        if let focusedStep = plan.steps.first(where: { $0.saved.focused }),
+           let id = focusedStep.matchedWindowId {
+            try? yabai.focusWindow(id)
+        }
         return report
     }
 

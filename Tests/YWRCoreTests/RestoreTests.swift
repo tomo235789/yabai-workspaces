@@ -74,6 +74,33 @@ final class RestoreTests: XCTestCase {
         XCTAssertEqual(report.failures.count, 1)
     }
 
+    func testFocusedWindowIsRefocusedLast() throws {
+        let a = Window(id: 1, pid: 1, app: "Code", title: "a", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let b = Window(id: 2, pid: 2, app: "Term", title: "b", frame: Frame(x: 500, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let yabai = FakeYabai(displays: [display], spaces: [], windows: [a, b])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+
+        var focusedSaved = savedWindow(app: "Term", title: "b", floating: false, x: 500, w: 500)
+        focusedSaved.focused = true
+        let snapshot = makeSnapshot([
+            savedWindow(app: "Code", title: "a", floating: false, x: 0, w: 500),
+            focusedSaved
+        ])
+
+        _ = try restorer.restore(snapshot)
+        // The last control call must be a focus on Term (window id 2).
+        XCTAssertEqual(yabai.controls.last, .focus(id: 2))
+    }
+
+    func testCapturerRecordsFocusedWindow() throws {
+        let focused = Window(id: 5, pid: 1, app: "Code", title: "x", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, hasFocus: true)
+        let other = Window(id: 6, pid: 2, app: "Term", title: "y", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, hasFocus: false)
+        let yabai = FakeYabai(displays: [display], spaces: [], windows: [focused, other])
+        let snapshot = try SnapshotCapturer(yabai: yabai).capture(name: "f", at: Date())
+        XCTAssertEqual(snapshot.windows.first(where: { $0.app == "Code" })?.focused, true)
+        XCTAssertEqual(snapshot.windows.first(where: { $0.app == "Term" })?.focused, false)
+    }
+
     func testFloatingWindowGetsMoveAndResize() throws {
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isFloating: true)
         let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])

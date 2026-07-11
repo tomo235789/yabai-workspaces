@@ -27,6 +27,9 @@ public struct WindowSnapshot: Codable, Equatable, Sendable {
     public var frame: Frame
     public var relativeFrame: RelativeFrame
     public var flags: WindowFlags
+    /// Whether this window had keyboard focus at capture time. Restore refocuses
+    /// it last so the layout comes back with the same active window.
+    public var focused: Bool
 
     public init(
         app: String,
@@ -37,7 +40,8 @@ public struct WindowSnapshot: Codable, Equatable, Sendable {
         display: Int,
         frame: Frame,
         relativeFrame: RelativeFrame,
-        flags: WindowFlags
+        flags: WindowFlags,
+        focused: Bool = false
     ) {
         self.app = app
         self.title = title
@@ -48,6 +52,22 @@ public struct WindowSnapshot: Codable, Equatable, Sendable {
         self.frame = frame
         self.relativeFrame = relativeFrame
         self.flags = flags
+        self.focused = focused
+    }
+
+    // `focused` is new; decode it as false when reading older snapshots.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        app = try c.decode(String.self, forKey: .app)
+        title = try c.decode(String.self, forKey: .title)
+        role = try c.decode(String.self, forKey: .role)
+        pid = try c.decode(Int.self, forKey: .pid)
+        space = try c.decode(Int.self, forKey: .space)
+        display = try c.decode(Int.self, forKey: .display)
+        frame = try c.decode(Frame.self, forKey: .frame)
+        relativeFrame = try c.decode(RelativeFrame.self, forKey: .relativeFrame)
+        flags = try c.decode(WindowFlags.self, forKey: .flags)
+        focused = try c.decodeIfPresent(Bool.self, forKey: .focused) ?? false
     }
 }
 
