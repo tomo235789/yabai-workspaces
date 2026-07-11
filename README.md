@@ -1,5 +1,7 @@
 # ywr — yabai workspaces
 
+English | [日本語](README.ja.md)
+
 Save your macOS window layout (displays, Spaces, window placement) as a named
 snapshot and restore it when the same display configuration comes back. `ywr` is
 a thin **companion CLI** for [yabai](https://github.com/koekeishiya/yabai) — it
@@ -7,10 +9,13 @@ does not fork or bundle yabai; it shells out to `yabai -m`.
 
 ## Status
 
-Implemented: `doctor`, `snapshot save`, `snapshot list`, `restore` (with
-`--dry-run` and `--auto`), `profile capture`, `profile list`. A background daemon
-(display-change auto-restore) and a menu-bar app are planned (see `plans.md` /
-`PRD.md`).
+Implemented:
+
+- **CLI (`ywr`)**: `doctor`, `snapshot save/list`, `restore` (with `--dry-run`
+  and `--auto`), `profile capture/list`, and `daemon` (watch for display changes
+  and auto-restore).
+- **Menu-bar app (`ywr-menubar`)**: a SwiftUI `MenuBarExtra` to save the current
+  layout and trigger auto-restore, themed from an external file.
 
 ## Requirements
 
@@ -31,16 +36,37 @@ ywr snapshot save home     # capture the current layout as "home"
 ywr snapshot list          # list saved snapshots
 ywr restore home --dry-run # preview what restore would do
 ywr restore home           # move windows back into place
+ywr restore --auto         # pick the snapshot matching the current displays
+ywr profile capture home   # record the current display configuration
+ywr daemon --interval 2    # auto-restore whenever the displays change
 ```
 
-Snapshots are stored as JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
+Snapshots and profiles are stored as JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
 (default `~/.config/yabai-workspaces`).
+
+### Theming the menu-bar app
+
+Colors and fonts live in a separate JSON file so they can be changed without
+touching code. Drop a `theme.json` next to your snapshots
+(`~/.config/yabai-workspaces/theme.json`); if absent, a built-in dark default is
+used. Schema:
+
+```json
+{
+  "colors": {
+    "accent": "#4C8DFF", "background": "#1E1E1E", "surface": "#2A2A2A",
+    "textPrimary": "#FFFFFF", "textSecondary": "#A0A0A0",
+    "success": "#3FB950", "warning": "#D29922", "error": "#F85149"
+  },
+  "font": { "family": "System", "regularSize": 13, "titleSize": 15, "monospacedDigits": true }
+}
+```
 
 ## Build & test
 
 ```sh
 swift build                # builds the `ywr` binary
-swift run ywr-tests        # runs the unit suite (no Xcode required)
+swift test                 # runs the XCTest suite (requires Xcode)
 ```
 
 ## Architecture

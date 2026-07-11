@@ -7,6 +7,14 @@ public struct SnapshotSummary: Sendable {
     public let capturedAt: Date
     public let windowCount: Int
     public let spaceCount: Int
+
+    public init(name: String, fingerprint: String, capturedAt: Date, windowCount: Int, spaceCount: Int) {
+        self.name = name
+        self.fingerprint = fingerprint
+        self.capturedAt = capturedAt
+        self.windowCount = windowCount
+        self.spaceCount = spaceCount
+    }
 }
 
 /// Persistence boundary for snapshots. An abstraction so restore/list logic can

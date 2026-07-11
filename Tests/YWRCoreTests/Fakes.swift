@@ -89,3 +89,62 @@ final class FakeLauncher: AppLaunching, @unchecked Sendable {
 struct ImmediateWaiter: Waiter {
     func wait(seconds: Double) {}
 }
+
+/// Emits a scripted sequence of fingerprints, one per `runOnce` call. Calls
+/// whose 0-based index is in `throwOnCalls` throw instead, to exercise the
+/// daemon's transient-failure resilience.
+final class FakeDisplayWatcher: DisplayWatching, @unchecked Sendable {
+    private var sequence: [String]
+    private let throwOnCalls: Set<Int>
+    private(set) var callCount = 0
+
+    struct BoomError: Error {}
+
+    init(sequence: [String], throwOnCalls: Set<Int> = []) {
+        self.sequence = sequence
+        self.throwOnCalls = throwOnCalls
+    }
+
+    func runOnce(previousFingerprint: String?) throws -> String {
+        let call = callCount
+        callCount += 1
+        if throwOnCalls.contains(call) { throw BoomError() }
+        // Clamp to the last value once the script is exhausted.
+        let idx = min(call, sequence.count - 1)
+        return sequence[idx]
+    }
+}
+
+/// Records every change the monitor reports.
+final class RecordingHandler: DisplayChangeHandling, @unchecked Sendable {
+    private(set) var changes: [(from: String?, to: String)] = []
+    func handleChange(from oldFingerprint: String?, to newFingerprint: String) {
+        changes.append((oldFingerprint, newFingerprint))
+    }
+}
+
+/// Captures log lines for assertions.
+final class CapturingLogger: EventLogging, @unchecked Sendable {
+    private(set) var lines: [String] = []
+    func log(_ message: String) { lines.append(message) }
+}
+
+/// In-memory SnapshotStore for handler tests.
+final class FakeSnapshotStore: SnapshotStore, @unchecked Sendable {
+    var snapshots: [Snapshot]
+    init(snapshots: [Snapshot] = []) { self.snapshots = snapshots }
+
+    func save(_ snapshot: Snapshot) throws { snapshots.append(snapshot) }
+    func load(name: String) throws -> Snapshot {
+        guard let s = snapshots.first(where: { $0.name == name }) else {
+            throw SnapshotStoreError.notFound(name: name)
+        }
+        return s
+    }
+    func list() throws -> [SnapshotSummary] {
+        snapshots.map { SnapshotSummary(name: $0.name, fingerprint: $0.displayProfile.fingerprint,
+                                        capturedAt: $0.capturedAt, windowCount: $0.windows.count, spaceCount: $0.spaces.count) }
+    }
+    func loadAll() throws -> [Snapshot] { snapshots }
+    func exists(name: String) -> Bool { snapshots.contains { $0.name == name } }
+}

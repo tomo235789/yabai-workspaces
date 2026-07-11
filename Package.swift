@@ -8,7 +8,9 @@ let package = Package(
     ],
     products: [
         .executable(name: "ywr", targets: ["ywr"]),
-        .library(name: "YWRCore", targets: ["YWRCore"])
+        .executable(name: "ywr-menubar", targets: ["ywr-menubar"]),
+        .library(name: "YWRCore", targets: ["YWRCore"]),
+        .library(name: "YWRTheme", targets: ["YWRTheme"])
     ],
     targets: [
         // Executable: thin CLI layer that wires the core together.
@@ -23,9 +25,21 @@ let package = Package(
             name: "YWRCore",
             path: "Sources/YWRCore"
         ),
+        // Theming schema + loader. Foundation-only (no SwiftUI) so colors/fonts
+        // can be specified in an external JSON file and unit-tested.
+        .target(
+            name: "YWRTheme",
+            path: "Sources/YWRTheme"
+        ),
+        // SwiftUI menu-bar app. Maps the theme to SwiftUI and drives YWRCore.
+        .executableTarget(
+            name: "ywr-menubar",
+            dependencies: ["YWRCore", "YWRTheme"],
+            path: "Sources/ywr-menubar"
+        ),
         .testTarget(
             name: "YWRCoreTests",
-            dependencies: ["YWRCore"],
+            dependencies: ["YWRCore", "YWRTheme"],
             path: "Tests/YWRCoreTests"
         )
     ]
