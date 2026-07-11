@@ -1,0 +1,29 @@
+#!/bin/bash
+# Fake `yabai` for ywr end-to-end tests.
+#
+# Query calls return canned JSON fixtures; every other (mutating) call is
+# appended to a log so tests can assert on what ywr asked yabai to do. This lets
+# the real `ywr` binary be driven as a black box — Playwright-style — without a
+# running window manager.
+#
+# Env:
+#   YWR_E2E_FIXTURES   directory containing displays.json / spaces.json / windows.json
+#   YWR_E2E_YABAI_LOG  file to append control commands to
+set -euo pipefail
+
+FIX="${YWR_E2E_FIXTURES:?YWR_E2E_FIXTURES not set}"
+LOG="${YWR_E2E_YABAI_LOG:?YWR_E2E_YABAI_LOG not set}"
+
+if [[ "${1:-}" == "-m" && "${2:-}" == "query" ]]; then
+  case "${3:-}" in
+    --displays) cat "$FIX/displays.json" ;;
+    --spaces)   cat "$FIX/spaces.json" ;;
+    --windows)  cat "$FIX/windows.json" ;;
+    *) echo "[]" ;;
+  esac
+  exit 0
+fi
+
+# Any non-query invocation is a control op: record it and succeed.
+echo "$*" >> "$LOG"
+exit 0
