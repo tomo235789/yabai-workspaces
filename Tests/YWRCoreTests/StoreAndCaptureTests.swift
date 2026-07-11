@@ -38,6 +38,25 @@ final class StoreAndCaptureTests: XCTestCase {
         XCTAssertThrowsError(try store.load(name: "nope"))
     }
 
+    func testRejectsPathTraversalNames() throws {
+        let paths = tempPaths()
+        defer { try? FileManager.default.removeItem(at: paths.root) }
+        let store = FileSnapshotStore(paths: paths)
+        let display = Display(id: 1, uuid: "D1", index: 1, frame: Frame(x: 0, y: 0, w: 1, h: 1), spaces: [1])
+        func snap(_ name: String) -> Snapshot {
+            Snapshot(name: name, capturedAt: Date(),
+                     displayProfile: DisplayProfile(fingerprint: "x", displays: [display]),
+                     spaces: [], windows: [])
+        }
+        for bad in ["../evil", "a/b", "..", ".", "", "with\0nul"] {
+            XCTAssertThrowsError(try store.save(snap(bad)), "should reject '\(bad)'")
+            XCTAssertThrowsError(try store.load(name: bad))
+            XCTAssertFalse(store.exists(name: bad))
+        }
+        XCTAssertTrue(Paths.isValidName("home"))
+        XCTAssertTrue(Paths.isValidName("office-4k"))
+    }
+
     func testCapturerBuildsRelativeFramesAndFingerprint() throws {
         let display = Display(id: 1, uuid: "D1", index: 1, frame: Frame(x: 0, y: 0, w: 1000, h: 800), spaces: [1])
         let window = Window(id: 1, pid: 1, app: "Code", title: "proj",

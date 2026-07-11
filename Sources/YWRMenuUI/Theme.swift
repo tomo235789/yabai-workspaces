@@ -1,8 +1,8 @@
 import SwiftUI
 import YWRTheme
 
-// Implemented via ollama gemma4:31b, reviewed and integrated unchanged.
 // Bridges the Foundation-only YWRTheme schema to SwiftUI Color/Font.
+// (Originally implemented via ollama gemma4:31b.)
 
 extension Color {
     init(_ rgba: RGBAColor) {
@@ -11,14 +11,14 @@ extension Color {
 
     static func fromHex(_ hex: String, fallback: Color = .gray) -> Color {
         do {
-            let rgba = try HexColor.parse(hex)
-            return Color(rgba)
+            return Color(try HexColor.parse(hex))
         } catch {
             return fallback
         }
     }
 }
 
+/// A resolved, SwiftUI-ready view of a `ThemeConfig`.
 public struct Theme {
     public let config: ThemeConfig
 
@@ -36,22 +36,16 @@ public struct Theme {
     public var error: Color { Color.fromHex(config.colors.error) }
 
     public var bodyFont: Font {
-        let font: Font
-        if config.font.family == "System" {
-            font = .system(size: config.font.regularSize)
-        } else {
-            font = .custom(config.font.family, size: config.font.regularSize)
-        }
+        let font: Font = config.font.family == "System"
+            ? .system(size: config.font.regularSize)
+            : .custom(config.font.family, size: config.font.regularSize)
         return config.font.monospacedDigits ? font.monospacedDigit() : font
     }
 
     public var titleFont: Font {
-        let font: Font
-        if config.font.family == "System" {
-            font = .system(size: config.font.titleSize, weight: .semibold)
-        } else {
-            font = .custom(config.font.family, size: config.font.titleSize).weight(.semibold)
-        }
+        let font: Font = config.font.family == "System"
+            ? .system(size: config.font.titleSize, weight: .semibold)
+            : .custom(config.font.family, size: config.font.titleSize).weight(.semibold)
         return config.font.monospacedDigits ? font.monospacedDigit() : font
     }
 }

@@ -3,6 +3,9 @@
 .swiftpm/
 Package.resolved
 
+# Generated report output (HTML + screenshots)
+/build/
+
 # Xcode
 *.xcodeproj/
 *.xcworkspace/

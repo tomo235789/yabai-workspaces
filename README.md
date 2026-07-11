@@ -79,7 +79,12 @@ used. Schema:
 swift build                # builds the `ywr` binary
 swift test                 # unit tests — XCTest suite (requires Xcode)
 bash Tests/e2e/run.sh      # end-to-end: runs the real binary against a fake yabai
+bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
 ```
+
+`scripts/report.sh` runs the unit and e2e suites and renders the menu-bar UI to
+PNGs (headlessly, via `ImageRenderer`), then assembles a single self-contained
+`build/report/report.html` with the results and embedded screenshots.
 
 The e2e suite (`Tests/e2e/`) drives the actual `ywr` binary as a black box
 against a fake `yabai` on `PATH` — the CLI analogue of a Playwright browser

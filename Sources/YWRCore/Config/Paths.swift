@@ -31,4 +31,27 @@ public struct Paths: Sendable {
     public func profileFile(name: String) -> URL {
         profilesDir.appendingPathComponent("\(name).json")
     }
+
+    /// A snapshot/profile name must be a single, safe path component — reject
+    /// anything with path separators, `..`, NUL, or leading dots so a name can
+    /// never escape `snapshotsDir` / `profilesDir` (path traversal).
+    public static func isValidName(_ name: String) -> Bool {
+        guard !name.isEmpty, name.utf8.count <= 200 else { return false }
+        guard !name.contains("/"), !name.contains("\\"), !name.contains("\0") else { return false }
+        guard !name.hasPrefix(".") else { return false }   // rules out "." and ".."
+        return true
+    }
+}
+
+public enum NameError: Error, CustomStringConvertible {
+    case invalid(String)
+
+    public var description: String {
+        "invalid name '\(name)': use a single word without '/', '\\', or a leading '.'"
+    }
+
+    private var name: String {
+        if case let .invalid(n) = self { return n }
+        return ""
+    }
 }
