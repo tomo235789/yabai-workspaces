@@ -37,9 +37,16 @@ ywr snapshot list          # 保存済みスナップショット一覧
 ywr restore home --dry-run # 復元内容をプレビュー（変更しない）
 ywr restore home           # ウィンドウを元の配置へ戻す
 ywr restore --auto         # 現在のディスプレイに一致する snapshot を自動選択
+ywr restore home --create-spaces  # 不足している labeled Space を作成してから復元
 ywr profile capture home   # 現在のディスプレイ構成を記録
-ywr daemon --interval 2    # ディスプレイ変更時に自動復元
+ywr daemon --interval 2    # ディスプレイ変更時に自動復元（ポーリング）
+ywr signal install         # yabai のシグナルで自動復元（デーモン不要）
 ```
+
+`ywr daemon`（ポーリング）と `ywr signal install`（yabai シグナルによるイベント
+駆動）は自動復元の 2 方式です。お好みの方をどうぞ。復元では各ウィンドウの
+floating / minimized / fullscreen 状態も戻し、保存時にアクティブだったウィンドウ
+へフォーカスを戻します。
 
 スナップショットとプロファイルは `$XDG_CONFIG_HOME/yabai-workspaces`
 （既定は `~/.config/yabai-workspaces`）配下に JSON として保存されます。

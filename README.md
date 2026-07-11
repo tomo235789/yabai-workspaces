@@ -37,9 +37,16 @@ ywr snapshot list          # list saved snapshots
 ywr restore home --dry-run # preview what restore would do
 ywr restore home           # move windows back into place
 ywr restore --auto         # pick the snapshot matching the current displays
+ywr restore home --create-spaces  # also create missing labeled Spaces first
 ywr profile capture home   # record the current display configuration
-ywr daemon --interval 2    # auto-restore whenever the displays change
+ywr daemon --interval 2    # auto-restore whenever the displays change (polling)
+ywr signal install         # let yabai auto-restore on display events (no daemon)
 ```
+
+`ywr daemon` (polling) and `ywr signal install` (event-driven via yabai signals)
+are two ways to trigger auto-restore automatically — use whichever you prefer.
+Restoring also brings back each window's floating / minimized / fullscreen state
+and refocuses the window that was active at capture time.
 
 Snapshots and profiles are stored as JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
 (default `~/.config/yabai-workspaces`).

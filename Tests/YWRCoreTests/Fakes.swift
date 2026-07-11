@@ -33,6 +33,9 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
         case resize(id: Int, w: Double, h: Double)
         case focus(id: Int)
         case label(index: Int, label: String)
+        case createSpace(display: Int)
+        case minimize(id: Int, on: Bool)
+        case fullscreen(id: Int, on: Bool)
     }
     private(set) var controls: [Control] = []
     var failMoveForWindowIds: Set<Int> = []
@@ -68,6 +71,17 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
     }
     func focusWindow(_ id: Int) throws { controls.append(.focus(id: id)) }
     func labelSpace(index: Int, label: String) throws { controls.append(.label(index: index, label: label)) }
+    var failCreateSpaceForDisplays: Set<Int> = []
+    private var nextSpaceIndex = 100
+    func createSpace(onDisplay displayIndex: Int) throws {
+        if failCreateSpaceForDisplays.contains(displayIndex) { throw BoomError() }
+        controls.append(.createSpace(display: displayIndex))
+        // Mimic yabai: a new unlabeled space appears on that display.
+        spaces.append(Space(id: nextSpaceIndex, index: nextSpaceIndex, label: "", display: displayIndex))
+        nextSpaceIndex += 1
+    }
+    func setMinimized(_ id: Int, _ minimized: Bool) throws { controls.append(.minimize(id: id, on: minimized)) }
+    func setFullscreen(_ id: Int, _ fullscreen: Bool) throws { controls.append(.fullscreen(id: id, on: fullscreen)) }
 }
 
 /// AppLauncher fake: never really launches; can inject "appeared" windows.

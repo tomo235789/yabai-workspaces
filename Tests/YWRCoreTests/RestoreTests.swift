@@ -101,6 +101,46 @@ final class RestoreTests: XCTestCase {
         XCTAssertEqual(snapshot.windows.first(where: { $0.app == "Term" })?.focused, false)
     }
 
+    func testMinimizedAndFullscreenFlagsAreRestored() throws {
+        let minWin = Window(id: 1, pid: 1, app: "Code", title: "m", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let fsWin = Window(id: 2, pid: 2, app: "Term", title: "f", frame: Frame(x: 500, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let yabai = FakeYabai(displays: [display], spaces: [], windows: [minWin, fsWin])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+
+        var minimized = savedWindow(app: "Code", title: "m", floating: false, x: 0, w: 500)
+        minimized.flags.minimized = true
+        var full = savedWindow(app: "Term", title: "f", floating: true, x: 500, w: 500)
+        full.flags.fullscreen = true
+        let snapshot = makeSnapshot([minimized, full])
+
+        _ = try restorer.restore(snapshot)
+
+        XCTAssertTrue(yabai.controls.contains(.minimize(id: 1, on: true)))
+        XCTAssertTrue(yabai.controls.contains(.fullscreen(id: 2, on: true)))
+        // A fullscreen window must NOT get move/resize even though it's floating.
+        XCTAssertFalse(yabai.controls.contains { if case .move(let id, _, _) = $0 { return id == 2 }; return false })
+    }
+
+    func testBlockingStatesAreClearedBeforeMoving() throws {
+        // A window that is live-minimized/fullscreen must be un-blocked before
+        // yabai is asked to move it, otherwise the move fails (codex review).
+        let live = Window(id: 1, pid: 1, app: "Code", title: "m", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isMinimized: true, isNativeFullscreen: true)
+        let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+        let snapshot = makeSnapshot([savedWindow(app: "Code", title: "m", floating: false, x: 0, w: 500)])
+
+        _ = try restorer.restore(snapshot)
+
+        let firstMove = yabai.controls.firstIndex { if case .display = $0 { return true }; return false }
+        let clearMin = yabai.controls.firstIndex(of: .minimize(id: 1, on: false))
+        let clearFs = yabai.controls.firstIndex(of: .fullscreen(id: 1, on: false))
+        XCTAssertNotNil(firstMove)
+        XCTAssertNotNil(clearMin)
+        XCTAssertNotNil(clearFs)
+        XCTAssertLessThan(clearMin!, firstMove!, "minimize must be cleared before moving")
+        XCTAssertLessThan(clearFs!, firstMove!, "fullscreen must be cleared before moving")
+    }
+
     func testFloatingWindowGetsMoveAndResize() throws {
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isFloating: true)
         let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])

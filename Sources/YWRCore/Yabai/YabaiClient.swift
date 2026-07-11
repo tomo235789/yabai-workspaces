@@ -18,6 +18,9 @@ public protocol YabaiControlling: Sendable {
     func resizeWindow(_ id: Int, toW w: Double, h: Double) throws
     func focusWindow(_ id: Int) throws
     func labelSpace(index: Int, label: String) throws
+    func createSpace(onDisplay displayIndex: Int) throws
+    func setMinimized(_ id: Int, _ minimized: Bool) throws
+    func setFullscreen(_ id: Int, _ fullscreen: Bool) throws
 }
 
 /// Concrete yabai adapter. Depends only on the `CommandRunner` abstraction, so
@@ -91,6 +94,28 @@ public struct YabaiClient: YabaiQuerying, YabaiControlling {
 
     public func labelSpace(index: Int, label: String) throws {
         try control(["-m", "space", "\(index)", "--label", label])
+    }
+
+    public func createSpace(onDisplay displayIndex: Int) throws {
+        // yabai creates the new space on the active display, so focus it first.
+        try control(["-m", "display", "--focus", "\(displayIndex)"])
+        try control(["-m", "space", "--create"])
+    }
+
+    public func setMinimized(_ id: Int, _ minimized: Bool) throws {
+        let windows = try queryWindows()
+        guard let current = windows.first(where: { $0.id == id }) else { return }
+        if current.isMinimized != minimized {
+            try control(["-m", "window", "\(id)", minimized ? "--minimize" : "--deminimize"])
+        }
+    }
+
+    public func setFullscreen(_ id: Int, _ fullscreen: Bool) throws {
+        let windows = try queryWindows()
+        guard let current = windows.first(where: { $0.id == id }) else { return }
+        if current.isNativeFullscreen != fullscreen {
+            try control(["-m", "window", "\(id)", "--toggle", "native-fullscreen"])
+        }
     }
 
     private func control(_ args: [String]) throws {
