@@ -144,7 +144,7 @@ swift run ywr-menubar
 Everything is JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
 (default `~/.config/yabai-workspaces`):
 
-```
+```text
 snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 ```
 
@@ -162,7 +162,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |
 | `ywr profile capture <name>` / `list` | Record / list display profiles |
 | `ywr daemon [--interval <s>]` | Auto-restore by polling |
-| `ywr signal install\|uninstall\|list` | Auto-restore via yabai signals |
+| `ywr signal` <install\|uninstall\|list> | Auto-restore via yabai signals |
 
 ---
 

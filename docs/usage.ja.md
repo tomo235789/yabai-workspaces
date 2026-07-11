@@ -212,7 +212,7 @@ swift run ywr-menubar
 | `ywr profile capture <name>` | ディスプレイ構成を記録 |
 | `ywr profile list` | プロファイル一覧 |
 | `ywr daemon [--interval <秒>]` | ポーリングで自動復元 |
-| `ywr signal install\|uninstall\|list` | yabai シグナルで自動復元 |
+| `ywr signal` <install\|uninstall\|list> | yabai シグナルで自動復元 |
 
 ---
 
