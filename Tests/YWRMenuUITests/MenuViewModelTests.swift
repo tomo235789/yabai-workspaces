@@ -15,12 +15,17 @@ private final class FakeActions: WorkspaceActions, @unchecked Sendable {
     }
 
     struct SaveError: Error {}
+    private(set) var restoredNames: [String] = []
 
     func snapshotNames() async -> [String] { names }
     func save(name: String) async throws {
         if saveShouldThrow { throw SaveError() }
         savedNames.append(name)
         names.append(name)
+    }
+    func restore(name: String) async throws -> String {
+        restoredNames.append(name)
+        return "Restored '\(name)'"
     }
     func restoreAuto() async throws -> String { restoreResult }
 }
@@ -58,6 +63,15 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertTrue(model.status.hasPrefix("Save failed:"))
     }
 
+    func testRestoreByNameCallsActionAndSetsStatus() async {
+        let actions = FakeActions(names: ["home", "office"])
+        let model = MenuViewModel(actions: actions)
+        await model.restore(name: "office")
+        XCTAssertEqual(actions.restoredNames, ["office"])
+        XCTAssertEqual(model.status, "Restored 'office'")
+        XCTAssertFalse(model.isBusy)
+    }
+
     func testRestoreAutoSetsStatus() async {
         let model = MenuViewModel(actions: FakeActions(restoreResult: "Restored 'home': 3 moved, 0 failed"))
         await model.restoreAuto()
@@ -87,5 +101,6 @@ private final class SlowActions: WorkspaceActions, @unchecked Sendable {
         saveCount += 1
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
+    func restore(name: String) async throws -> String { "" }
     func restoreAuto() async throws -> String { "" }
 }

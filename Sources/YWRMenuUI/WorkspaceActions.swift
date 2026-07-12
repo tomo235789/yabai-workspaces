@@ -7,6 +7,7 @@ import Foundation
 public protocol WorkspaceActions: Sendable {
     func snapshotNames() async -> [String]
     func save(name: String) async throws
+    func restore(name: String) async throws -> String
     func restoreAuto() async throws -> String
 }
 
@@ -22,5 +23,6 @@ public struct StubActions: WorkspaceActions {
 
     public func snapshotNames() async -> [String] { names }
     public func save(name: String) async throws {}
+    public func restore(name: String) async throws -> String { restoreResult }
     public func restoreAuto() async throws -> String { restoreResult }
 }

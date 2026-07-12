@@ -38,14 +38,25 @@ public struct MenuContentView: View {
                 .disabled(model.isBusy)
 
             if !model.snapshots.isEmpty {
-                Text("Saved:")
+                Text("Saved — click to restore:")
                     .font(theme.bodyFont)
                     .foregroundColor(theme.textSecondary)
 
                 ForEach(model.snapshots, id: \.self) { name in
-                    Text(name)
-                        .font(theme.bodyFont)
-                        .foregroundColor(theme.textPrimary)
+                    Button { Task { await model.restore(name: name) } } label: {
+                        HStack {
+                            Text(name)
+                                .font(theme.bodyFont)
+                                .foregroundColor(theme.textPrimary)
+                            Spacer()
+                            Text("Restore")
+                                .font(theme.bodyFont)
+                                .foregroundColor(theme.accent)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.isBusy)
                 }
             }
 

@@ -48,6 +48,14 @@ actor CoreWorkspaceActions: WorkspaceActions {
         try store.save(snapshot)
     }
 
+    func restore(name: String) async throws -> String {
+        let snapshot = try store.load(name: name)
+        let report = try restorer.restore(snapshot)
+        let po = report.positionsOnly.count
+        let poNote = po > 0 ? " (\(po) positions-only)" : ""
+        return "Restored '\(name)': \(report.moved.count) moved, \(report.failures.count) failed\(poNote)"
+    }
+
     func restoreAuto() async throws -> String {
         let displays = try yabai.queryDisplays()
         let snapshots = try store.loadAll()

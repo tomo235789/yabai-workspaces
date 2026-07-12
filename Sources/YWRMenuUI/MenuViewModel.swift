@@ -48,6 +48,17 @@ public final class MenuViewModel: ObservableObject {
         }
     }
 
+    public func restore(name: String) async {
+        guard !isBusy else { return }   // ignore re-entrant taps while working
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            status = try await actions.restore(name: name)
+        } catch {
+            status = "Restore failed: \(error)"
+        }
+    }
+
     public func restoreAuto() async {
         guard !isBusy else { return }   // ignore re-entrant taps while working
         isBusy = true
