@@ -111,9 +111,10 @@ ywr profile list
 - Prints any windows it **couldn't restore** at the end (no silent failures)
 
 **Positions-only / auto-fallback.** On setups where cross-Space/display moves
-aren't available ("Displays have separate Spaces" off, no scripting addition,
-or a single display), ywr still restores each window's position/size on the
-current Space:
+aren't available (for example, when Space movement fails or scripting addition
+is unavailable), ywr still restores each window's position/size on the current
+Space. A single display still supports moves between Spaces; only
+cross-display movement is unavailable:
 
 - **Default is auto-fallback**: a full restore is attempted first, and any window
   whose Display/Space move fails degrades to positions-only (not a failure). The

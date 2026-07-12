@@ -95,6 +95,27 @@ final class RestoreTests: XCTestCase {
         XCTAssertTrue(report.failures.isEmpty)
     }
 
+    func testPositionsOnlyNeverChangesFullscreenOrMinimizedState() throws {
+        let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
+                          frame: Frame(x: 0, y: 0, w: 500, h: 500),
+                          display: 1, space: 1, isFloating: true, isNativeFullscreen: true)
+        let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+        var saved = savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)
+        saved.flags.fullscreen = true
+
+        _ = try restorer.restore(makeSnapshot([saved]), positionsOnly: true)
+
+        XCTAssertFalse(yabai.controls.contains {
+            if case .fullscreen = $0 { return true }
+            return false
+        }, "positions-only must not leave or enter a native fullscreen Space")
+        XCTAssertFalse(yabai.controls.contains {
+            if case .minimize = $0 { return true }
+            return false
+        }, "positions-only must not minimize or deminimize a window")
+    }
+
     func testAutoFallbackDegradesWhenDisplaySpaceMoveFails() throws {
         // The Display move (attempted first) throws — e.g. no separate Spaces or
         // scripting addition. The window must degrade to positions-only, not
@@ -239,7 +260,7 @@ final class RestoreTests: XCTestCase {
         XCTAssertEqual(focusedSpaces, [1, 2, 1])
     }
 
-    func testUnifiedSnapshotUsesDesktopDiscovery() throws {
+    func testUnifiedPositionsOnlyRestoreUsesDesktopDiscovery() throws {
         final class Discovery: VirtualDesktopWindowDiscovering, @unchecked Sendable {
             var called = false
             let windows: [Window]
@@ -254,7 +275,7 @@ final class RestoreTests: XCTestCase {
         var snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: false, x: 0, w: 500)])
         snapshot.spaceMode = .unifiedDesktop
 
-        let report = try restorer.restore(snapshot)
+        let report = try restorer.restore(snapshot, positionsOnly: true)
         XCTAssertTrue(discovery.called)
         XCTAssertEqual(report.moved.count, 1)
     }

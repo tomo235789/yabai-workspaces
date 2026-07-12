@@ -20,10 +20,11 @@ public struct YabaiVirtualDesktopWindowDiscovery: VirtualDesktopWindowDiscoverin
     }
 
     public func discover() throws -> [Window] {
-        let spaces = try yabai.querySpaces()
+        let allSpaces = try yabai.querySpaces()
+        let originalSpace = allSpaces.first(where: { $0.hasFocus })?.index
+        let spaces = allSpaces
             .filter { !$0.isNativeFullscreen }
             .sorted { $0.index < $1.index }
-        let originalSpace = spaces.first(where: { $0.hasFocus })?.index
         guard !spaces.isEmpty else { return try yabai.queryWindows() }
         defer {
             if let originalSpace { try? yabai.focusSpace(index: originalSpace) }

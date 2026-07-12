@@ -76,7 +76,7 @@ public struct SnapshotRestorer: Sendable {
         }
 
         var plan: RestorePlan
-        if snapshot.spaceMode == .unifiedDesktop && !positionsOnly {
+        if snapshot.spaceMode == .unifiedDesktop {
             plan = planner.plan(snapshot: snapshot,
                                 currentDisplays: try yabai.queryDisplays(),
                                 currentSpaces: try yabai.querySpaces(),
@@ -192,11 +192,14 @@ public struct SnapshotRestorer: Sendable {
         var degraded = positionsOnly
 
         do {
-            // Clear live minimized/fullscreen state FIRST — yabai cannot move a
-            // window in those states (setMinimized/setFullscreen are no-ops when
-            // already in the desired state).
-            try yabai.setMinimized(id, false)
-            try yabai.setFullscreen(id, false)
+            // Full restore temporarily clears blocking states before moving.
+            // Positions-only must not change either state because native
+            // fullscreen owns a Space and minimize/deminimize is outside its
+            // geometry-only contract.
+            if !positionsOnly {
+                try yabai.setMinimized(id, false)
+                try yabai.setFullscreen(id, false)
+            }
 
             if !positionsOnly {
                 // Auto-fallback: a Display/Space move can fail when "Displays have
@@ -226,8 +229,10 @@ public struct SnapshotRestorer: Sendable {
                 try yabai.resizeWindow(id, toW: frame.w, h: frame.h)
             }
 
-            try yabai.setFullscreen(id, flags.fullscreen)
-            try yabai.setMinimized(id, flags.minimized)
+            if !positionsOnly {
+                try yabai.setFullscreen(id, flags.fullscreen)
+                try yabai.setMinimized(id, flags.minimized)
+            }
 
             return RestoreOutcome(label: step.describedLabel, status: degraded ? .movedPositionsOnly : .moved)
         } catch {
