@@ -17,6 +17,7 @@ public protocol YabaiControlling: Sendable {
     func moveWindow(_ id: Int, toX x: Double, y: Double) throws
     func resizeWindow(_ id: Int, toW w: Double, h: Double) throws
     func focusWindow(_ id: Int) throws
+    func focusSpace(index: Int) throws
     func labelSpace(index: Int, label: String) throws
     func createSpace(onDisplay displayIndex: Int) throws
     func setMinimized(_ id: Int, _ minimized: Bool) throws
@@ -90,6 +91,10 @@ public struct YabaiClient: YabaiQuerying, YabaiControlling {
 
     public func focusWindow(_ id: Int) throws {
         try control(["-m", "window", "\(id)", "--focus"])
+    }
+
+    public func focusSpace(index: Int) throws {
+        try control(["-m", "space", "--focus", "\(index)"])
     }
 
     public func labelSpace(index: Int, label: String) throws {

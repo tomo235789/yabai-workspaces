@@ -10,10 +10,12 @@ public protocol SnapshotCapturing: Sendable {
 public struct SnapshotCapturer: SnapshotCapturing {
     private let yabai: YabaiQuerying
     private let fingerprint: FingerprintGenerating
+    private let spaceModeDetector: SpaceModeDetecting
 
-    public init(yabai: YabaiQuerying, fingerprint: FingerprintGenerating = DefaultFingerprintGenerator()) {
+    public init(yabai: YabaiQuerying, fingerprint: FingerprintGenerating = DefaultFingerprintGenerator(), spaceModeDetector: SpaceModeDetecting = FixedSpaceModeDetector(.unknown)) {
         self.yabai = yabai
         self.fingerprint = fingerprint
+        self.spaceModeDetector = spaceModeDetector
     }
 
     public func capture(name: String, at date: Date = Date()) throws -> Snapshot {
@@ -56,6 +58,7 @@ public struct SnapshotCapturer: SnapshotCapturing {
         return Snapshot(
             name: name,
             capturedAt: date,
+            spaceMode: spaceModeDetector.detect(),
             displayProfile: DisplayProfile(
                 fingerprint: fingerprint.fingerprint(for: displays),
                 displays: displays

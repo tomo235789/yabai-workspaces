@@ -21,7 +21,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
         let client = YabaiClient(runner: runner)
         self.yabai = client
         self.store = FileSnapshotStore(paths: paths)
-        self.capturer = SnapshotCapturer(yabai: client)
+        self.capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
         self.restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
         self.autoSelector = AutoSelector()
         self.logger = logger

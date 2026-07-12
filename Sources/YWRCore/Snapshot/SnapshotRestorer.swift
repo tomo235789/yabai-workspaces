@@ -11,6 +11,7 @@ public struct SnapshotRestorer: Sendable {
     private let displayMatcher: DisplayMatching
     private let provisioner: SpaceProvisioner
     private let waiter: Waiter
+    private let desktopWindowDiscovery: VirtualDesktopWindowDiscovering
     private let launchRetries: Int
     private let launchWaitSeconds: Double
 
@@ -22,6 +23,7 @@ public struct SnapshotRestorer: Sendable {
         displayMatcher: DisplayMatching = DisplayMatcher(),
         provisioner: SpaceProvisioner = SpaceProvisioner(),
         waiter: Waiter = RealWaiter(),
+        desktopWindowDiscovery: VirtualDesktopWindowDiscovering? = nil,
         launchRetries: Int = 10,
         launchWaitSeconds: Double = 0.5
     ) {
@@ -32,6 +34,7 @@ public struct SnapshotRestorer: Sendable {
         self.displayMatcher = displayMatcher
         self.provisioner = provisioner
         self.waiter = waiter
+        self.desktopWindowDiscovery = desktopWindowDiscovery ?? YabaiVirtualDesktopWindowDiscovery(yabai: yabai, waiter: waiter)
         self.launchRetries = launchRetries
         self.launchWaitSeconds = launchWaitSeconds
     }
@@ -72,7 +75,15 @@ public struct SnapshotRestorer: Sendable {
             try provisionSpaces(for: snapshot)
         }
 
-        var plan = try buildPlan(for: snapshot)
+        var plan: RestorePlan
+        if snapshot.spaceMode == .unifiedDesktop && !positionsOnly {
+            plan = planner.plan(snapshot: snapshot,
+                                currentDisplays: try yabai.queryDisplays(),
+                                currentSpaces: try yabai.querySpaces(),
+                                currentWindows: try desktopWindowDiscovery.discover())
+        } else {
+            plan = try buildPlan(for: snapshot)
+        }
         var report = RestoreReport()
 
         // 1. Launch missing apps, then wait for their windows to appear.

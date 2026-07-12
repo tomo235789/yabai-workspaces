@@ -70,6 +70,27 @@ final class StoreAndCaptureTests: XCTestCase {
         XCTAssertEqual(snapshot.windows[0].relativeFrame.x, 0.1, accuracy: 0.0001)
         XCTAssertTrue(snapshot.windows[0].flags.floating)
     }
+
+    func testV1SnapshotDecodesWithUnknownSpaceMode() throws {
+        let json = """
+        {"version":1,"name":"old","capturedAt":"1970-01-01T00:00:00Z",
+         "displayProfile":{"fingerprint":"x","displays":[]},"spaces":[],"windows":[]}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let snapshot = try decoder.decode(Snapshot.self, from: Data(json.utf8))
+        XCTAssertEqual(snapshot.version, 1)
+        XCTAssertEqual(snapshot.spaceMode, .unknown)
+    }
+
+    func testSpaceModeDetectorMapsSpansDisplaysPreference() {
+        let unified = FakeCommandRunner { _, _ in CommandResult(exitCode: 0, stdout: "1\n", stderr: "") }
+        let separate = FakeCommandRunner { _, _ in CommandResult(exitCode: 0, stdout: "0\n", stderr: "") }
+        let unavailable = FakeCommandRunner { _, _ in CommandResult(exitCode: 1, stdout: "", stderr: "missing") }
+        XCTAssertEqual(MacOSSpaceModeDetector(runner: unified).detect(), .unifiedDesktop)
+        XCTAssertEqual(MacOSSpaceModeDetector(runner: separate).detect(), .separatePerDisplay)
+        XCTAssertEqual(MacOSSpaceModeDetector(runner: unavailable).detect(), .unknown)
+    }
 }
 
 final class YabaiClientTests: XCTestCase {

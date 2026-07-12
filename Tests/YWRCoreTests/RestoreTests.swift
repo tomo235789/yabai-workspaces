@@ -220,4 +220,42 @@ final class RestoreTests: XCTestCase {
         XCTAssertTrue(didMove)
         XCTAssertTrue(didResize)
     }
+
+    func testUnifiedDiscoveryVisitsDesktopsAndRestoresFocus() throws {
+        let spaces = [
+            Space(id: 1, index: 1, label: "code", display: 1, hasFocus: true),
+            Space(id: 2, index: 2, label: "web", display: 1)
+        ]
+        let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
+                          frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let yabai = FakeYabai(displays: [display], spaces: spaces, windows: [live])
+        let discovery = YabaiVirtualDesktopWindowDiscovery(yabai: yabai, waiter: ImmediateWaiter())
+
+        XCTAssertEqual(try discovery.discover().map(\.id), [42])
+        let focusedSpaces = yabai.controls.compactMap { control -> Int? in
+            if case let .focusSpace(index) = control { return index }
+            return nil
+        }
+        XCTAssertEqual(focusedSpaces, [1, 2, 1])
+    }
+
+    func testUnifiedSnapshotUsesDesktopDiscovery() throws {
+        final class Discovery: VirtualDesktopWindowDiscovering, @unchecked Sendable {
+            var called = false
+            let windows: [Window]
+            init(_ windows: [Window]) { self.windows = windows }
+            func discover() throws -> [Window] { called = true; return windows }
+        }
+        let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
+                          frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
+        let yabai = FakeYabai(displays: [display], spaces: [Space(id: 1, index: 1, label: "code", display: 1)], windows: [])
+        let discovery = Discovery([live])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter(), desktopWindowDiscovery: discovery)
+        var snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: false, x: 0, w: 500)])
+        snapshot.spaceMode = .unifiedDesktop
+
+        let report = try restorer.restore(snapshot)
+        XCTAssertTrue(discovery.called)
+        XCTAssertEqual(report.moved.count, 1)
+    }
 }

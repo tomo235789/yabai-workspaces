@@ -97,11 +97,12 @@ public struct DisplayProfile: Codable, Equatable, Sendable {
 
 /// The top-level artifact written by `snapshot save` and read by `restore`.
 public struct Snapshot: Codable, Equatable, Sendable {
-    public static let currentVersion = 1
+    public static let currentVersion = 2
 
     public var version: Int
     public var name: String
     public var capturedAt: Date
+    public var spaceMode: SpaceMode
     public var displayProfile: DisplayProfile
     public var spaces: [SpaceSnapshot]
     public var windows: [WindowSnapshot]
@@ -110,6 +111,7 @@ public struct Snapshot: Codable, Equatable, Sendable {
         version: Int = Snapshot.currentVersion,
         name: String,
         capturedAt: Date,
+        spaceMode: SpaceMode = .unknown,
         displayProfile: DisplayProfile,
         spaces: [SpaceSnapshot],
         windows: [WindowSnapshot]
@@ -117,8 +119,20 @@ public struct Snapshot: Codable, Equatable, Sendable {
         self.version = version
         self.name = name
         self.capturedAt = capturedAt
+        self.spaceMode = spaceMode
         self.displayProfile = displayProfile
         self.spaces = spaces
         self.windows = windows
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        name = try c.decode(String.self, forKey: .name)
+        capturedAt = try c.decode(Date.self, forKey: .capturedAt)
+        spaceMode = try c.decodeIfPresent(SpaceMode.self, forKey: .spaceMode) ?? .unknown
+        displayProfile = try c.decode(DisplayProfile.self, forKey: .displayProfile)
+        spaces = try c.decode([SpaceSnapshot].self, forKey: .spaces)
+        windows = try c.decode([WindowSnapshot].self, forKey: .windows)
     }
 }
