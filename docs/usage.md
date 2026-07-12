@@ -18,11 +18,17 @@ brew install koekeishiya/formulae/yabai
 yabai --start-service
 ```
 
-macOS settings to check:
+Permissions & settings:
 
-- **System Settings ▸ Desktop & Dock ▸ "Displays have separate Spaces" = ON**
-- Grant yabai **Accessibility** permission
-- Restoring across Spaces needs yabai's **scripting-addition** loaded
+- **yabai Accessibility permission** — required to move/resize windows at all
+  (**including positions-only restore**).
+- Full restore **across Spaces / displays** additionally needs:
+  - System Settings ▸ Desktop & Dock ▸ "Displays have separate Spaces" = ON
+  - the yabai **scripting-addition** loaded
+- Without those extras, ywr automatically falls back to positions-only
+  (`ywr doctor` shows the status). Note: a single display can still have
+  multiple Spaces (Space moves work); a single display only removes
+  cross-display moves.
 
 ---
 
@@ -104,7 +110,23 @@ ywr profile list
 - **Launches** apps that aren't running (`open -a`) and waits briefly
 - Prints any windows it **couldn't restore** at the end (no silent failures)
 
-**Create missing Spaces** first:
+**Positions-only / auto-fallback.** On setups where cross-Space/display moves
+aren't available ("Displays have separate Spaces" off, no scripting addition,
+or a single display), ywr still restores each window's position/size on the
+current Space:
+
+- **Default is auto-fallback**: a full restore is attempted first, and any window
+  whose Display/Space move fails degrades to positions-only (not a failure). The
+  summary reports "N positions-only".
+- **Explicit**: `--positions-only` skips Display/Space moves from the start.
+
+```sh
+ywr restore home                  # auto-fallback (default)
+ywr restore home --positions-only # geometry only, no Space/display moves
+```
+
+**Create missing Spaces** first (cannot be combined with `--positions-only` —
+doing so is an error):
 
 ```sh
 ywr restore home --create-spaces
@@ -160,6 +182,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr restore <name> [--dry-run]` | Restore (preview with `--dry-run`) |
 | `ywr restore --auto` | Auto-pick the matching snapshot |
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |
+| `ywr restore <name> --positions-only` | Geometry only; no Space/display moves |
 | `ywr profile capture <name>` / `list` | Record / list display profiles |
 | `ywr daemon [--interval <s>]` | Auto-restore by polling |
 | `ywr signal` <install\|uninstall\|list> | Auto-restore via yabai signals |
@@ -170,5 +193,5 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 
 - **`command not found: ywr`** — not on PATH: `swift build -c release && cp .build/release/ywr ~/.local/bin/ywr`.
 - **`doctor` shows ✗** — yabai not installed/running: `brew install ... yabai`, `yabai --start-service`.
-- **Cross-Space moves don't work** — scripting-addition not loaded, or "Displays have separate Spaces" is OFF.
+- **Cross-Space moves don't work** — scripting-addition not loaded, or "Displays have separate Spaces" is OFF. Positions-only restore still works, and ywr auto-falls-back to it (or force it with `--positions-only`).
 - **Some windows don't return** — `restore` prints a failure list at the end; use `--dry-run` to inspect matching.

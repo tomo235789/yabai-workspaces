@@ -58,10 +58,17 @@ public struct SnapshotRestorer: Sendable {
     /// Executes the restore and returns a report of every window's outcome.
     /// When `createSpaces` is true, missing labeled Spaces are created first so
     /// windows can be moved to Spaces that don't exist yet.
-    public func restore(_ snapshot: Snapshot, createSpaces: Bool = false) throws -> RestoreReport {
+    ///
+    /// With `positionsOnly`, Display/Space moves are skipped entirely and only
+    /// each window's geometry is restored on the current Space. Even in the
+    /// default mode, a failed Display/Space move (e.g. "Displays have separate
+    /// Spaces" off, or no scripting addition) falls back to positions-only for
+    /// that window rather than failing it.
+    public func restore(_ snapshot: Snapshot, createSpaces: Bool = false, positionsOnly: Bool = false) throws -> RestoreReport {
         // Provision missing Spaces BEFORE planning, so the plan maps windows to
         // the freshly-created (now labeled) Spaces rather than a fallback.
-        if createSpaces {
+        // Skip when positions-only: we aren't touching Spaces.
+        if createSpaces && !positionsOnly {
             try provisionSpaces(for: snapshot)
         }
 
@@ -86,13 +93,29 @@ public struct SnapshotRestorer: Sendable {
         }
 
         // 2. Re-apply space labels first so subsequent moves land correctly.
-        for label in plan.spaceLabels {
-            try? yabai.labelSpace(index: label.spaceIndex, label: label.label)
+        // Positions-only must not touch Space configuration at all.
+        if !positionsOnly {
+            for label in plan.spaceLabels {
+                try? yabai.labelSpace(index: label.spaceIndex, label: label.label)
+            }
         }
 
-        // 3. Apply each window step.
+        // 3. Apply each window step. Capture the live display of each window so
+        // that when a Display move is skipped/failed, geometry is resolved
+        // against the display the window is ACTUALLY on (not the planned one).
+        let displayFrameByIndex = Dictionary(
+            (try yabai.queryDisplays()).map { ($0.index, $0.frame) },
+            uniquingKeysWith: { a, _ in a }
+        )
+        let windowDisplayById = Dictionary(
+            (try yabai.queryWindows()).map { ($0.id, $0.display) },
+            uniquingKeysWith: { a, _ in a }
+        )
         for step in plan.steps {
-            report.outcomes.append(apply(step))
+            let currentDisplayFrame = step.matchedWindowId
+                .flatMap { windowDisplayById[$0] }
+                .flatMap { displayFrameByIndex[$0] }
+            report.outcomes.append(apply(step, positionsOnly: positionsOnly, currentDisplayFrame: currentDisplayFrame))
         }
 
         // 4. Windows that never matched.
@@ -148,31 +171,54 @@ public struct SnapshotRestorer: Sendable {
 
     // MARK: - Execution
 
-    private func apply(_ step: WindowRestoreStep) -> RestoreOutcome {
+    // Implemented via ollama gemma4:31b, reviewed and integrated.
+    private func apply(_ step: WindowRestoreStep, positionsOnly: Bool, currentDisplayFrame: Frame?) -> RestoreOutcome {
         guard let id = step.matchedWindowId else {
             return RestoreOutcome(label: step.describedLabel, status: .launchedAndDeferred)
         }
+
         let flags = step.saved.flags
+        var degraded = positionsOnly
+
         do {
-            // Clear any live minimized/fullscreen state FIRST — yabai cannot move
-            // or resize a window while it is minimized or native-fullscreen, so
-            // geometry commands would otherwise fail before the state is cleared.
-            // (setMinimized/setFullscreen are no-ops when already in the state.)
+            // Clear live minimized/fullscreen state FIRST — yabai cannot move a
+            // window in those states (setMinimized/setFullscreen are no-ops when
+            // already in the desired state).
             try yabai.setMinimized(id, false)
             try yabai.setFullscreen(id, false)
 
-            try yabai.moveWindow(id, toDisplay: step.targetDisplayIndex)
-            try yabai.moveWindow(id, toSpace: step.targetSpaceIndex)
-            try yabai.setFloating(id, step.shouldFloat)
-            if step.shouldFloat && !flags.fullscreen {
-                // move/resize only apply meaningfully to floating, non-fullscreen windows.
-                try yabai.moveWindow(id, toX: step.targetFrame.x, y: step.targetFrame.y)
-                try yabai.resizeWindow(id, toW: step.targetFrame.w, h: step.targetFrame.h)
+            if !positionsOnly {
+                // Auto-fallback: a Display/Space move can fail when "Displays have
+                // separate Spaces" is off or the scripting addition isn't loaded.
+                // Degrade to positions-only for this window instead of failing it.
+                do {
+                    try yabai.moveWindow(id, toDisplay: step.targetDisplayIndex)
+                    try yabai.moveWindow(id, toSpace: step.targetSpaceIndex)
+                } catch {
+                    degraded = true
+                }
             }
-            // Apply the saved blocking states last so the moves above can run.
+
+            try yabai.setFloating(id, step.shouldFloat)
+
+            if step.shouldFloat && !flags.fullscreen {
+                // When we didn't move the window to the planned display, resolve
+                // its geometry against the display it's actually on so it lands
+                // on-screen (and doesn't implicitly cross displays).
+                let frame: Frame
+                if degraded, let cdf = currentDisplayFrame {
+                    frame = step.saved.relativeFrame.resolved(on: cdf)
+                } else {
+                    frame = step.targetFrame
+                }
+                try yabai.moveWindow(id, toX: frame.x, y: frame.y)
+                try yabai.resizeWindow(id, toW: frame.w, h: frame.h)
+            }
+
             try yabai.setFullscreen(id, flags.fullscreen)
             try yabai.setMinimized(id, flags.minimized)
-            return RestoreOutcome(label: step.describedLabel, status: .moved)
+
+            return RestoreOutcome(label: step.describedLabel, status: degraded ? .movedPositionsOnly : .moved)
         } catch {
             return RestoreOutcome(label: step.describedLabel, status: .failed(reason: "\(error)"))
         }

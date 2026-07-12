@@ -18,11 +18,16 @@ brew install koekeishiya/formulae/yabai
 yabai --start-service
 ```
 
-macOS の設定も確認します:
+必要な権限・設定:
 
-- **システム設定 ▸ デスクトップとDock ▸ 「ディスプレイごとに個別の操作スペース」を ON**
-- yabai に**アクセシビリティ権限**を付与
-- Space をまたいだ復元には yabai の **scripting-addition** が必要
+- **yabai のアクセシビリティ権限** — ウィンドウの移動・リサイズに必要です
+  （**位置のみ復元でも必須**）。
+- **Space / ディスプレイをまたぐ**フル復元をしたい場合は、追加で次が必要:
+  - システム設定 ▸ デスクトップとDock ▸ 「ディスプレイごとに個別の操作スペース」を ON
+  - yabai の **scripting-addition** をロード
+- これらの追加設定が無い環境では、ywr は自動的に**位置のみ復元**へ縮退します
+  （`ywr doctor` が状況を表示）。なお単一ディスプレイでも複数 Space 間の移動は可能で、
+  単一ディスプレイでは「ディスプレイをまたぐ移動」だけが対象外になります。
 
 ---
 
@@ -141,10 +146,27 @@ ywr profile list
 - 起動していないアプリは `open -a` で**起動**して数秒待つ
 - 復元できなかったウィンドウは**最後に一覧表示**（失敗を握りつぶさない）
 
+### 位置のみ復元 / 自動フォールバック
+
+Space やディスプレイをまたぐ移動が使えない・不要な環境（「個別の操作スペース」OFF、
+scripting-addition 無し、単一ディスプレイでのディスプレイ跨ぎ復元など）でも、
+**現在の Space 内でウィンドウの位置・サイズだけを復元**できます。
+
+- **既定は自動フォールバック**：まずフル復元を試み、Space/Display 移動が失敗した
+  ウィンドウは自動で位置のみ復元へ縮退します（失敗扱いにはなりません）。復元後に
+  「N positions-only」と表示されます。
+- **明示指定**：最初から Space/Display 移動をスキップしたい場合は `--positions-only`。
+
+```sh
+ywr restore home                  # 自動フォールバック（既定）
+ywr restore home --positions-only # 位置・サイズのみ復元（Space/Display 移動なし）
+```
+
 ### 不足している Space を作る
 
 保存時にラベル付き Space があり、現在それが無い場合、`--create-spaces` を付けると
-不足分の Space を作成してからウィンドウを移動します。
+不足分の Space を作成してからウィンドウを移動します。`--positions-only` とは併用
+できません（同時指定するとエラーになります）。
 
 ```sh
 ywr restore home --create-spaces
@@ -209,6 +231,7 @@ swift run ywr-menubar
 | `ywr restore <name> --dry-run` | 復元内容をプレビュー |
 | `ywr restore --auto` | 現構成に一致する snapshot を自動選択して復元 |
 | `ywr restore <name> --create-spaces` | 不足 Space を作成してから復元 |
+| `ywr restore <name> --positions-only` | Space/Display 移動なし、位置・サイズのみ復元 |
 | `ywr profile capture <name>` | ディスプレイ構成を記録 |
 | `ywr profile list` | プロファイル一覧 |
 | `ywr daemon [--interval <秒>]` | ポーリングで自動復元 |
@@ -223,6 +246,7 @@ swift run ywr-menubar
 - **`doctor` が ✗** → yabai 未導入 or 未起動。`brew install ... yabai` /
   `yabai --start-service`。
 - **Space をまたぐ移動が効かない** → scripting-addition が未ロード、または
-  「ディスプレイごとに個別の操作スペース」が OFF。
+  「ディスプレイごとに個別の操作スペース」が OFF。この場合でも位置のみ復元は動作し、
+  ywr は自動でそちらへ縮退します（`--positions-only` で明示指定も可）。
 - **一部ウィンドウが戻らない** → `restore` 実行後の末尾に失敗一覧が出ます。
   アプリ未起動・タイトル不一致などが原因。`--dry-run` で対応付けを確認できます。

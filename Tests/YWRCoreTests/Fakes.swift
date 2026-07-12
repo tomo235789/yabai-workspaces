@@ -60,7 +60,9 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
         if failMoveForWindowIds.contains(id) { throw BoomError() }
         controls.append(.display(id: id, index: displayIndex))
     }
+    var failFloatForWindowIds: Set<Int> = []
     func setFloating(_ id: Int, _ floating: Bool) throws {
+        if failFloatForWindowIds.contains(id) { throw BoomError() }
         controls.append(.float(id: id, on: floating))
     }
     func moveWindow(_ id: Int, toX x: Double, y: Double) throws {

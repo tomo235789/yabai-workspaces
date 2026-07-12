@@ -83,7 +83,7 @@ public struct MacOSSettingsNoticeCheck: DiagnosticCheck {
         CheckResult(
             name: name,
             status: .warn,
-            message: "Ensure 'Displays have separate Spaces' is ON (System Settings ▸ Desktop & Dock) and that yabai has Accessibility permission. Restoring across Spaces needs the yabai scripting-addition loaded."
+            message: "Window position restore works as-is. For full restore across Spaces/Displays, turn ON 'Displays have separate Spaces' (System Settings ▸ Desktop & Dock), grant yabai Accessibility permission, and load the yabai scripting-addition. Without these, ywr falls back to positions-only."
         )
     }
 }

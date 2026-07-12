@@ -58,10 +58,12 @@ final class RestoreTests: XCTestCase {
     }
 
     func testRestorerReportsFailuresAndMoves() throws {
+        // A genuine geometry failure (setFloating throws) is a real failure;
+        // window 42 restores fine.
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
         let liveFail = Window(id: 99, pid: 2, app: "Term", title: "shell", frame: Frame(x: 500, y: 0, w: 500, h: 500), display: 1, space: 1)
         let yabai = FakeYabai(displays: [display], spaces: [Space(id: 1, index: 1, label: "code", display: 1)], windows: [live, liveFail])
-        yabai.failMoveForWindowIds = [99]
+        yabai.failFloatForWindowIds = [99]
 
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
         let snapshot = makeSnapshot([
@@ -72,6 +74,71 @@ final class RestoreTests: XCTestCase {
         let report = try restorer.restore(snapshot)
         XCTAssertEqual(report.moved.count, 1)
         XCTAssertEqual(report.failures.count, 1)
+    }
+
+    func testPositionsOnlySkipsDisplayAndSpaceMoves() throws {
+        let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isFloating: true)
+        let yabai = FakeYabai(displays: [display], spaces: [Space(id: 1, index: 1, label: "code", display: 1)], windows: [live])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+        let snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)])
+
+        let report = try restorer.restore(snapshot, positionsOnly: true)
+
+        let hasDisplay = yabai.controls.contains { if case .display = $0 { return true }; return false }
+        let hasSpace = yabai.controls.contains { if case .space = $0 { return true }; return false }
+        let hasMove = yabai.controls.contains { if case .move = $0 { return true }; return false }
+        XCTAssertFalse(hasDisplay, "positions-only must not move across displays")
+        XCTAssertFalse(hasSpace, "positions-only must not move across spaces")
+        XCTAssertTrue(hasMove, "positions-only still restores geometry")
+        XCTAssertEqual(report.positionsOnly.count, 1)
+        XCTAssertEqual(report.moved.count, 1)
+        XCTAssertTrue(report.failures.isEmpty)
+    }
+
+    func testAutoFallbackDegradesWhenDisplaySpaceMoveFails() throws {
+        // The Display move (attempted first) throws — e.g. no separate Spaces or
+        // scripting addition. The window must degrade to positions-only, not
+        // fail, and still get its geometry.
+        let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isFloating: true)
+        let yabai = FakeYabai(displays: [display], spaces: [Space(id: 1, index: 1, label: "code", display: 1)], windows: [live])
+        yabai.failMoveForWindowIds = [42]   // toDisplay (and toSpace) throw
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+        let snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)])
+
+        let report = try restorer.restore(snapshot)   // default mode (auto-fallback)
+
+        XCTAssertEqual(report.positionsOnly.count, 1, "move failure should degrade, not fail")
+        XCTAssertTrue(report.failures.isEmpty)
+        XCTAssertTrue(yabai.controls.contains { if case .move = $0 { return true }; return false })
+    }
+
+    func testPositionsOnlyResolvesGeometryAgainstCurrentDisplay() throws {
+        // Window is LIVE on display 2, but the snapshot targets display 1. In
+        // positions-only, geometry must be resolved against display 2 (where the
+        // window actually is), not the planned display 1.
+        let d1 = Display(id: 1, uuid: "D1", index: 1, frame: Frame(x: 0, y: 0, w: 1000, h: 1000), spaces: [1])
+        let d2 = Display(id: 2, uuid: "D2", index: 2, frame: Frame(x: 1000, y: 0, w: 2000, h: 1000), spaces: [2])
+        let live = Window(id: 7, pid: 1, app: "Code", title: "proj", frame: Frame(x: 1000, y: 0, w: 500, h: 500), display: 2, space: 2, isFloating: true)
+        let yabai = FakeYabai(displays: [d1, d2], spaces: [], windows: [live])
+        let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
+
+        // Saved on display 1 with relativeFrame left-half (0,0,0.5,0.5).
+        let savedFrame = Frame(x: 0, y: 0, w: 500, h: 500)
+        let saved = WindowSnapshot(app: "Code", title: "proj", role: "AXWindow", pid: 1, space: 1, display: 1,
+                                   frame: savedFrame,
+                                   relativeFrame: RelativeFrame.within(d1.frame, window: savedFrame),
+                                   flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false))
+        let snapshot = Snapshot(name: "t", capturedAt: Date(),
+                                displayProfile: DisplayProfile(fingerprint: "x", displays: [d1]),
+                                spaces: [], windows: [saved])
+
+        _ = try restorer.restore(snapshot, positionsOnly: true)
+
+        // relative (0,0,0.5,0.5) on display 2 (x:1000,w:2000) → x=1000, w=1000.
+        let move = yabai.controls.compactMap { c -> (Double, Double)? in
+            if case let .move(_, x, y) = c { return (x, y) }; return nil
+        }.first
+        XCTAssertEqual(move?.0, 1000, "geometry resolved against current display 2, not target display 1")
     }
 
     func testFocusedWindowIsRefocusedLast() throws {

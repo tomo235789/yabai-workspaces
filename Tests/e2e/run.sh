@@ -49,6 +49,7 @@ PASS=0; FAIL=0
 ok()   { echo "  ✓ $1"; PASS=$((PASS+1)); }
 bad()  { echo "  ✗ $1"; FAIL=$((FAIL+1)); }
 assert_contains() { if grep -qF -e "$2" <<<"$1"; then ok "$3"; else bad "$3 (missing: $2)"; fi; }
+assert_absent()   { if grep -qF -e "$2" <<<"$1"; then bad "$3 (unexpected: $2)"; else ok "$3"; fi; }
 assert_eq()       { if [[ "$1" == "$2" ]]; then ok "$3"; else bad "$3 (got '$1' want '$2')"; fi; }
 assert_file()     { if [[ -f "$1" ]]; then ok "$2"; else bad "$2 (no file $1)"; fi; }
 
@@ -81,6 +82,14 @@ log="$(cat "$YWR_E2E_YABAI_LOG")"
 assert_contains "$log" "window 10 --display" "restore moves window to display"
 assert_contains "$log" "window 10 --space" "restore moves window to space"
 assert_contains "$log" "--focus" "restore refocuses a window"
+
+# positions-only restore skips ALL display/space moves but still sets geometry
+: > "$YWR_E2E_YABAI_LOG"
+"$YWR" restore home --positions-only >/dev/null 2>&1
+log="$(cat "$YWR_E2E_YABAI_LOG")"
+assert_absent "$log" "--display" "positions-only sends no display moves (any window)"
+assert_absent "$log" "--space " "positions-only sends no space moves (any window)"
+assert_contains "$log" "window 10 --move" "positions-only restores floating window 10 geometry"
 
 # profile capture
 out="$("$YWR" profile capture home)"
