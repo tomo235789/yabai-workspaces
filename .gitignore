@@ -28,6 +28,8 @@ Icon?
 .vscode/
 
 # Build artifacts / binaries
-ywr
+# NOTE: do not ignore a bare `ywr` — it also matches the Sources/ywr/ CLI
+# target. The compiled binary lives under .build/ (already ignored).
+/ywr
 *.o
 *.dSYM/
