@@ -77,10 +77,19 @@ public struct SnapshotRestorer: Sendable {
 
         var plan: RestorePlan
         if snapshot.spaceMode == .unifiedDesktop {
+            // Discovery visibly cycles desktops; if it fails (e.g. a Space can't
+            // be focused) fall back to the current desktop's windows rather than
+            // aborting the whole restore.
+            let currentWindows: [Window]
+            if let discovered = try? desktopWindowDiscovery.discover() {
+                currentWindows = discovered
+            } else {
+                currentWindows = try yabai.queryWindows()
+            }
             plan = planner.plan(snapshot: snapshot,
                                 currentDisplays: try yabai.queryDisplays(),
                                 currentSpaces: try yabai.querySpaces(),
-                                currentWindows: try desktopWindowDiscovery.discover())
+                                currentWindows: currentWindows)
         } else {
             plan = try buildPlan(for: snapshot)
         }

@@ -96,13 +96,15 @@ final class RestoreTests: XCTestCase {
     }
 
     func testPositionsOnlyNeverChangesFullscreenOrMinimizedState() throws {
+        // Live window is minimized AND fullscreen while the snapshot wants neither
+        // — a normal restore WOULD emit clear/re-apply controls, so this proves
+        // positions-only specifically suppresses them.
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
                           frame: Frame(x: 0, y: 0, w: 500, h: 500),
-                          display: 1, space: 1, isFloating: true, isNativeFullscreen: true)
+                          display: 1, space: 1, isFloating: true, isMinimized: true, isNativeFullscreen: true)
         let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
-        var saved = savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)
-        saved.flags.fullscreen = true
+        let saved = savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)  // flags all false
 
         _ = try restorer.restore(makeSnapshot([saved]), positionsOnly: true)
 
@@ -258,6 +260,76 @@ final class RestoreTests: XCTestCase {
             return nil
         }
         XCTAssertEqual(focusedSpaces, [1, 2, 1])
+    }
+
+    func testUnifiedDiscoveryCollectsWindowsFromEverySpaceIncludingFullscreen() throws {
+        // A yabai double whose queryWindows returns different windows per focused
+        // space, so we truly exercise cross-space collection and dedup.
+        final class PerSpaceYabai: YabaiQuerying & YabaiControlling, @unchecked Sendable {
+            var spacesList: [Space]
+            let windowsBySpace: [Int: [Window]]
+            init(spaces: [Space], windowsBySpace: [Int: [Window]]) {
+                self.spacesList = spaces; self.windowsBySpace = windowsBySpace
+            }
+            private var focused: Int { spacesList.first(where: { $0.hasFocus })?.index ?? spacesList.first?.index ?? 0 }
+            func queryDisplays() throws -> [Display] { [] }
+            func querySpaces() throws -> [Space] { spacesList }
+            func queryWindows() throws -> [Window] { windowsBySpace[focused] ?? [] }
+            func focusSpace(index: Int) throws {
+                spacesList = spacesList.map { var s = $0; s.hasFocus = (s.index == index); return s }
+            }
+            func moveWindow(_ id: Int, toSpace: Int) throws {}
+            func moveWindow(_ id: Int, toDisplay: Int) throws {}
+            func setFloating(_ id: Int, _ f: Bool) throws {}
+            func moveWindow(_ id: Int, toX: Double, y: Double) throws {}
+            func resizeWindow(_ id: Int, toW: Double, h: Double) throws {}
+            func focusWindow(_ id: Int) throws {}
+            func labelSpace(index: Int, label: String) throws {}
+            func createSpace(onDisplay: Int) throws {}
+            func setMinimized(_ id: Int, _ m: Bool) throws {}
+            func setFullscreen(_ id: Int, _ fs: Bool) throws {}
+        }
+        func win(_ id: Int, space: Int) -> Window {
+            Window(id: id, pid: id, app: "A\(id)", title: "t", frame: Frame(x: 0, y: 0, w: 10, h: 10), display: 1, space: space)
+        }
+        let spaces = [
+            Space(id: 1, index: 1, label: "", display: 1, hasFocus: true),
+            Space(id: 2, index: 2, label: "", display: 1),
+            Space(id: 3, index: 3, label: "", display: 1, isNativeFullscreen: true)
+        ]
+        let yabai = PerSpaceYabai(spaces: spaces, windowsBySpace: [1: [win(10, space: 1)], 2: [win(20, space: 2)], 3: [win(30, space: 3)]])
+        let discovery = YabaiVirtualDesktopWindowDiscovery(yabai: yabai, waiter: ImmediateWaiter())
+
+        let ids = Set(try discovery.discover().map(\.id))
+        XCTAssertEqual(ids, [10, 20, 30], "must collect windows from every space, including the fullscreen one")
+        XCTAssertTrue(yabai.spacesList.first(where: { $0.hasFocus })?.index == 1, "must return focus to the original space")
+    }
+
+    func testUnifiedDiscoveryThrowsWhenEveryQueryFails() {
+        // querySpaces works, but every queryWindows fails — discover must throw
+        // (not return an empty "success") so the restorer's fallback can run.
+        final class FailingWindowsYabai: YabaiQuerying & YabaiControlling, @unchecked Sendable {
+            struct Boom: Error {}
+            func queryDisplays() throws -> [Display] { [] }
+            func querySpaces() throws -> [Space] {
+                [Space(id: 1, index: 1, label: "", display: 1, hasFocus: true),
+                 Space(id: 2, index: 2, label: "", display: 1)]
+            }
+            func queryWindows() throws -> [Window] { throw Boom() }
+            func focusSpace(index: Int) throws {}
+            func moveWindow(_ id: Int, toSpace: Int) throws {}
+            func moveWindow(_ id: Int, toDisplay: Int) throws {}
+            func setFloating(_ id: Int, _ f: Bool) throws {}
+            func moveWindow(_ id: Int, toX: Double, y: Double) throws {}
+            func resizeWindow(_ id: Int, toW: Double, h: Double) throws {}
+            func focusWindow(_ id: Int) throws {}
+            func labelSpace(index: Int, label: String) throws {}
+            func createSpace(onDisplay: Int) throws {}
+            func setMinimized(_ id: Int, _ m: Bool) throws {}
+            func setFullscreen(_ id: Int, _ fs: Bool) throws {}
+        }
+        let discovery = YabaiVirtualDesktopWindowDiscovery(yabai: FailingWindowsYabai(), waiter: ImmediateWaiter())
+        XCTAssertThrowsError(try discovery.discover())
     }
 
     func testUnifiedPositionsOnlyRestoreUsesDesktopDiscovery() throws {
