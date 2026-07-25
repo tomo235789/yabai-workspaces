@@ -117,6 +117,13 @@ yabai 無しの場合は、名前を指定して復元してください: `ywr r
 swift run ywr-menubar
 ```
 
+**アイコンが表示されない**場合は、`.app` バンドルとして起動してください（macOS は
+バンドル化した常駐アプリのメニューバー項目を確実に表示します）:
+
+```sh
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
+```
+
 > CLI と同様に、メニューバーアプリも yabai 未起動時は **native バックエンド**へ自動
 > フォールバックします（保存・クリック復元は動作。**Restore (auto)** は yabai が必要）。
 

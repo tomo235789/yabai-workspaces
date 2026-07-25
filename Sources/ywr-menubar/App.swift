@@ -1,6 +1,16 @@
 import SwiftUI
+import AppKit
 import YWRTheme
 import YWRMenuUI
+
+/// Makes the process a menu-bar accessory app (no Dock icon) so the
+/// `MenuBarExtra` item actually appears — important when launched as a bare
+/// `swift run` executable without an app bundle / LSUIElement.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+    }
+}
 
 /// Menu-bar app entry point. Colors/fonts come from an external JSON file when
 /// present (see YWRTheme); otherwise the built-in default is used. All UI and
@@ -8,6 +18,7 @@ import YWRMenuUI
 /// YWRCore-backed `CoreWorkspaceActions`.
 @main
 struct YwrMenuBarApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let theme: Theme
     @StateObject private var viewModel: MenuViewModel
 

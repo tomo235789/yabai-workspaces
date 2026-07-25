@@ -211,6 +211,17 @@ CLI と同じ操作（保存・自動復元）を GUI から行えるメニュ�
 swift run ywr-menubar
 ```
 
+**メニューバーにアイコンが出ない場合**は、`.app` バンドルとして起動してください。
+macOS はバンドル化された常駐（LSUIElement）アプリのメニューバー項目を確実に表示します。
+
+```sh
+bash scripts/make-menubar-app.sh          # build/YabaiWorkspaces.app を生成
+open build/YabaiWorkspaces.app            # メニューバーに ▤ アイコンが出る
+```
+
+初回は「yabai workspaces」に **Accessibility 権限**を付与してください（システム設定 ▸
+プライバシーとセキュリティ ▸ アクセシビリティ）。
+
 ### 配色・フォントの変更
 
 メニューバーアプリの配色とフォントは**コードを触らず外部ファイルで**変更できます。

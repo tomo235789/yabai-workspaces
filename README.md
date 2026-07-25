@@ -119,6 +119,13 @@ fonts come from an external `theme.json`.
 swift run ywr-menubar
 ```
 
+If the menu-bar **icon doesn't appear**, run it as a bundled app (macOS shows the
+menu-bar item for a bundled accessory app):
+
+```sh
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
+```
+
 > Like the CLI, the menu-bar app falls back to the **native backend** when yabai
 > isn't running (save and click-to-restore work; **Restore (auto)** needs yabai).
 

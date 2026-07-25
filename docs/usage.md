@@ -170,6 +170,17 @@ A SwiftUI menu-bar app mirrors the CLI (save + auto-restore):
 swift run ywr-menubar
 ```
 
+**If the menu-bar icon doesn't appear**, launch it as an `.app` bundle — macOS
+reliably shows the menu-bar item for a bundled LSUIElement (accessory) app:
+
+```sh
+bash scripts/make-menubar-app.sh          # builds build/YabaiWorkspaces.app
+open build/YabaiWorkspaces.app            # the ▤ icon appears in the menu bar
+```
+
+Grant **Accessibility** permission to "yabai workspaces" the first time (System
+Settings ▸ Privacy & Security ▸ Accessibility).
+
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):
 
