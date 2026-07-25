@@ -64,6 +64,10 @@ public struct RestorePlan: Sendable {
 public struct RestoreOutcome: Sendable {
     public enum Status: Sendable, Equatable {
         case moved
+        /// Geometry was restored but the Display/Space move was skipped or fell
+        /// back (e.g. "Displays have separate Spaces" off, or no scripting
+        /// addition). The window is positioned on the current Space.
+        case movedPositionsOnly
         case launchedAndDeferred
         case failed(reason: String)
         case unmatched
@@ -85,7 +89,16 @@ public struct RestoreReport: Sendable {
         self.outcomes = outcomes
     }
 
-    public var moved: [RestoreOutcome] { outcomes.filter { $0.status == .moved } }
+    /// All windows whose geometry was restored (full move or positions-only).
+    public var moved: [RestoreOutcome] {
+        outcomes.filter { $0.status == .moved || $0.status == .movedPositionsOnly }
+    }
+
+    /// Subset of `moved` that fell back to positions-only.
+    public var positionsOnly: [RestoreOutcome] {
+        outcomes.filter { $0.status == .movedPositionsOnly }
+    }
+
     public var failures: [RestoreOutcome] {
         outcomes.filter {
             if case .failed = $0.status { return true }

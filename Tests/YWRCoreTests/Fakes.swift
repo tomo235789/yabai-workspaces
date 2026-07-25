@@ -32,6 +32,7 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
         case move(id: Int, x: Double, y: Double)
         case resize(id: Int, w: Double, h: Double)
         case focus(id: Int)
+        case focusSpace(index: Int)
         case label(index: Int, label: String)
         case createSpace(display: Int)
         case minimize(id: Int, on: Bool)
@@ -60,7 +61,9 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
         if failMoveForWindowIds.contains(id) { throw BoomError() }
         controls.append(.display(id: id, index: displayIndex))
     }
+    var failFloatForWindowIds: Set<Int> = []
     func setFloating(_ id: Int, _ floating: Bool) throws {
+        if failFloatForWindowIds.contains(id) { throw BoomError() }
         controls.append(.float(id: id, on: floating))
     }
     func moveWindow(_ id: Int, toX x: Double, y: Double) throws {
@@ -70,6 +73,14 @@ final class FakeYabai: YabaiQuerying, YabaiControlling, @unchecked Sendable {
         controls.append(.resize(id: id, w: w, h: h))
     }
     func focusWindow(_ id: Int) throws { controls.append(.focus(id: id)) }
+    func focusSpace(index: Int) throws {
+        controls.append(.focusSpace(index: index))
+        spaces = spaces.map {
+            var updated = $0
+            updated.hasFocus = updated.index == index
+            return updated
+        }
+    }
     func labelSpace(index: Int, label: String) throws { controls.append(.label(index: index, label: label)) }
     var failCreateSpaceForDisplays: Set<Int> = []
     private var nextSpaceIndex = 100

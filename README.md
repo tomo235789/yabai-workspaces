@@ -11,9 +11,12 @@ does not fork or bundle yabai; it shells out to `yabai -m`.
 
 Implemented:
 
-- **CLI (`ywr`)**: `doctor`, `snapshot save/list`, `restore` (with `--dry-run`
-  and `--auto`), `profile capture/list`, and `daemon` (watch for display changes
-  and auto-restore).
+- **CLI (`ywr`)**: `doctor`, `snapshot save/list`, `restore` (with `--dry-run`,
+  `--auto`, `--positions-only`, `--native`), `profile capture/list`, `daemon`
+  (watch for display changes and auto-restore), and `signal` (yabai signals).
+- **Native backend**: when yabai can't run ("Displays have separate Spaces" off),
+  ywr saves/restores window position and size — including across displays —
+  through macOS Accessibility, independent of yabai (`--native` or automatic).
 - **Menu-bar app (`ywr-menubar`)**: a SwiftUI `MenuBarExtra` to save the current
   layout and trigger auto-restore, themed from an external file.
 

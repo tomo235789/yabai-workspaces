@@ -21,7 +21,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
         let client = YabaiClient(runner: runner)
         self.yabai = client
         self.store = FileSnapshotStore(paths: paths)
-        self.capturer = SnapshotCapturer(yabai: client)
+        self.capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
         self.restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
         self.autoSelector = AutoSelector()
         self.logger = logger
@@ -46,6 +46,14 @@ actor CoreWorkspaceActions: WorkspaceActions {
     func save(name: String) async throws {
         let snapshot = try capturer.capture(name: name, at: Date())
         try store.save(snapshot)
+    }
+
+    func restore(name: String) async throws -> String {
+        let snapshot = try store.load(name: name)
+        let report = try restorer.restore(snapshot)
+        let po = report.positionsOnly.count
+        let poNote = po > 0 ? " (\(po) positions-only)" : ""
+        return "Restored '\(name)': \(report.moved.count) moved, \(report.failures.count) failed\(poNote)"
     }
 
     func restoreAuto() async throws -> String {

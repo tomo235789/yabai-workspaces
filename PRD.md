@@ -1,6 +1,6 @@
 # Product Requirements Document: ywr (yabai-workspaces)
 
-**Author**: inagaki.tomonari@gmail.com
+**Author**: tomo235789
 **Date**: 2026-07-11
 **Status**: Draft
 **Stakeholders**: 開発者本人（1名 / 個人プロジェクト）。将来OSS公開時はコントリビューター・利用者。
