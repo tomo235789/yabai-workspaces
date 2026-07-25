@@ -46,17 +46,14 @@ public struct MenuContentView: View {
 
                 ForEach(model.snapshots, id: \.self) { name in
                     HStack(spacing: 8) {
+                        // Clicking the name restores it (the header says so) — no
+                        // separate "Restore" label needed.
                         Button { Task { await model.restore(name: name) } } label: {
-                            HStack {
-                                Text(name)
-                                    .font(theme.bodyFont)
-                                    .foregroundColor(theme.textPrimary)
-                                Spacer()
-                                Text("Restore")
-                                    .font(theme.bodyFont)
-                                    .foregroundColor(theme.accent)
-                            }
-                            .contentShape(Rectangle())
+                            Text(name)
+                                .font(theme.bodyFont)
+                                .foregroundColor(theme.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(model.isBusy)
