@@ -78,6 +78,10 @@ actor CoreWorkspaceActions: WorkspaceActions {
         }
     }
 
+    func delete(name: String) async throws {
+        try store.delete(name: name)
+    }
+
     func restoreAuto() async throws -> String {
         guard availability.isAvailable() else {
             return "Auto-restore needs yabai. Click a saved layout to restore it."

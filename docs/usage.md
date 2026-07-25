@@ -218,6 +218,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr doctor` | Check yabai and the environment |
 | `ywr snapshot save <name>` | Save the current layout |
 | `ywr snapshot list` | List saved snapshots |
+| `ywr snapshot delete <name>` | Delete a saved snapshot |
 | `ywr restore <name> [--dry-run]` | Restore (preview with `--dry-run`) |
 | `ywr restore --auto` | Auto-pick the matching snapshot |
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |

@@ -9,6 +9,8 @@ public struct MenuContentView: View {
     /// SwiftUI's `TextField` doesn't rasterize cleanly through `ImageRenderer`,
     /// so the screenshot tool asks for a static, display-only field instead.
     private let staticField: Bool
+    /// Name awaiting delete confirmation (deletion is destructive → confirm first).
+    @State private var pendingDelete: String?
 
     public init(model: MenuViewModel, theme: Theme, staticField: Bool = false) {
         self.model = model
@@ -43,20 +45,30 @@ public struct MenuContentView: View {
                     .foregroundColor(theme.textSecondary)
 
                 ForEach(model.snapshots, id: \.self) { name in
-                    Button { Task { await model.restore(name: name) } } label: {
-                        HStack {
-                            Text(name)
-                                .font(theme.bodyFont)
-                                .foregroundColor(theme.textPrimary)
-                            Spacer()
-                            Text("Restore")
-                                .font(theme.bodyFont)
-                                .foregroundColor(theme.accent)
+                    HStack(spacing: 8) {
+                        Button { Task { await model.restore(name: name) } } label: {
+                            HStack {
+                                Text(name)
+                                    .font(theme.bodyFont)
+                                    .foregroundColor(theme.textPrimary)
+                                Spacer()
+                                Text("Restore")
+                                    .font(theme.bodyFont)
+                                    .foregroundColor(theme.accent)
+                            }
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+
+                        Button { pendingDelete = name } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(theme.error)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Delete '\(name)'")
                     }
-                    .buttonStyle(.plain)
-                    .disabled(model.isBusy)
                 }
             }
 
@@ -78,6 +90,16 @@ public struct MenuContentView: View {
         .frame(minWidth: 250)
         .background(theme.background)
         .onAppear { Task { await model.refresh() } }
+        .confirmationDialog(
+            "Delete snapshot \"\(pendingDelete ?? "")\"?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let name = pendingDelete {
+                Button("Delete", role: .destructive) { Task { await model.delete(name: name) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     @ViewBuilder

@@ -172,4 +172,10 @@ final class FakeSnapshotStore: SnapshotStore, @unchecked Sendable {
     }
     func loadAll() throws -> [Snapshot] { snapshots }
     func exists(name: String) -> Bool { snapshots.contains { $0.name == name } }
+    func delete(name: String) throws {
+        guard snapshots.contains(where: { $0.name == name }) else {
+            throw SnapshotStoreError.notFound(name: name)
+        }
+        snapshots.removeAll { $0.name == name }
+    }
 }

@@ -9,6 +9,7 @@ public protocol WorkspaceActions: Sendable {
     func save(name: String) async throws
     func restore(name: String) async throws -> String
     func restoreAuto() async throws -> String
+    func delete(name: String) async throws
 }
 
 /// Fixed, side-effect-free actions for SwiftUI previews and headless rendering.
@@ -25,4 +26,5 @@ public struct StubActions: WorkspaceActions {
     public func save(name: String) async throws {}
     public func restore(name: String) async throws -> String { restoreResult }
     public func restoreAuto() async throws -> String { restoreResult }
+    public func delete(name: String) async throws {}
 }

@@ -69,4 +69,17 @@ public final class MenuViewModel: ObservableObject {
             status = "Restore failed: \(error)"
         }
     }
+
+    public func delete(name: String) async {
+        guard !isBusy else { return }   // ignore re-entrant taps while working
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await actions.delete(name: name)
+            status = "Deleted '\(name)'"
+            snapshots = await actions.snapshotNames()
+        } catch {
+            status = "Delete failed: \(error)"
+        }
+    }
 }

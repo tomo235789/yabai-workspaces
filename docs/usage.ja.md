@@ -266,6 +266,7 @@ bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 | `ywr doctor` | yabai と環境をチェック |
 | `ywr snapshot save <name>` | 現在の配置を保存 |
 | `ywr snapshot list` | 保存済み一覧 |
+| `ywr snapshot delete <name>` | 保存済みスナップショットを削除 |
 | `ywr restore <name>` | 復元 |
 | `ywr restore <name> --dry-run` | 復元内容をプレビュー |
 | `ywr restore --auto` | 現構成に一致する snapshot を自動選択して復元 |

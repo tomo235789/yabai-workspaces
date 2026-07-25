@@ -110,8 +110,8 @@ yabai 無しの場合は、名前を指定して復元してください: `ywr r
 ## メニューバーアプリ
 
 `ywr-menubar` は CLI と同じ操作を SwiftUI のメニューバーで提供します。名前を入力して
-保存、保存済みをクリックして復元、または **Restore (auto)**。配色・フォントは外部の
-`theme.json` で指定します。
+保存、保存済みをクリックして復元、🗑 ボタンで削除（確認あり）、または
+**Restore (auto)**。配色・フォントは外部の `theme.json` で指定します。
 
 ```sh
 swift run ywr-menubar

@@ -38,6 +38,36 @@ final class StoreAndCaptureTests: XCTestCase {
         XCTAssertThrowsError(try store.load(name: "nope"))
     }
 
+    func testDeleteRemovesSnapshotFile() throws {
+        let paths = tempPaths()
+        defer { try? FileManager.default.removeItem(at: paths.root) }
+        let store = FileSnapshotStore(paths: paths)
+        let display = Display(id: 1, uuid: "D1", index: 1, frame: Frame(x: 0, y: 0, w: 1, h: 1), spaces: [1])
+        let snapshot = Snapshot(name: "home", capturedAt: Date(),
+                                displayProfile: DisplayProfile(fingerprint: "x", displays: [display]),
+                                spaces: [], windows: [])
+        try store.save(snapshot)
+        XCTAssertTrue(store.exists(name: "home"))
+
+        try store.delete(name: "home")
+        XCTAssertFalse(store.exists(name: "home"))
+        XCTAssertThrowsError(try store.load(name: "home"))
+    }
+
+    func testDeletingMissingSnapshotThrows() {
+        let paths = tempPaths()
+        defer { try? FileManager.default.removeItem(at: paths.root) }
+        let store = FileSnapshotStore(paths: paths)
+        XCTAssertThrowsError(try store.delete(name: "nope"))
+    }
+
+    func testDeleteRejectsInvalidNames() {
+        let store = FileSnapshotStore(paths: tempPaths())
+        for bad in ["../evil", "a/b", "..", ""] {
+            XCTAssertThrowsError(try store.delete(name: bad), "should reject '\(bad)'")
+        }
+    }
+
     func testRejectsPathTraversalNames() throws {
         let paths = tempPaths()
         defer { try? FileManager.default.removeItem(at: paths.root) }

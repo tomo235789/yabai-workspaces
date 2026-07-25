@@ -28,6 +28,15 @@ private final class FakeActions: WorkspaceActions, @unchecked Sendable {
         return "Restored '\(name)'"
     }
     func restoreAuto() async throws -> String { restoreResult }
+
+    private(set) var deletedNames: [String] = []
+    var deleteShouldThrow: Bool = false
+    struct DeleteError: Error {}
+    func delete(name: String) async throws {
+        if deleteShouldThrow { throw DeleteError() }
+        deletedNames.append(name)
+        names.removeAll { $0 == name }
+    }
 }
 
 @MainActor
@@ -79,6 +88,25 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertFalse(model.isBusy)
     }
 
+    func testDeleteRemovesSnapshotAndRefreshes() async {
+        let actions = FakeActions(names: ["home", "office"])
+        let model = MenuViewModel(actions: actions)
+        await model.refresh()
+        await model.delete(name: "home")
+        XCTAssertEqual(actions.deletedNames, ["home"])
+        XCTAssertEqual(model.status, "Deleted 'home'")
+        XCTAssertEqual(model.snapshots, ["office"])          // refreshed
+        XCTAssertFalse(model.isBusy)
+    }
+
+    func testDeleteFailureShowsError() async {
+        let actions = FakeActions(names: ["home"])
+        actions.deleteShouldThrow = true
+        let model = MenuViewModel(actions: actions)
+        await model.delete(name: "home")
+        XCTAssertTrue(model.status.hasPrefix("Delete failed:"))
+    }
+
     func testReentrantSaveIsIgnoredWhileBusy() async {
         // Seeding isBusy via a first in-flight call is awkward to force
         // deterministically; instead verify the guard: a model marked busy
@@ -103,4 +131,5 @@ private final class SlowActions: WorkspaceActions, @unchecked Sendable {
     }
     func restore(name: String) async throws -> String { "" }
     func restoreAuto() async throws -> String { "" }
+    func delete(name: String) async throws {}
 }

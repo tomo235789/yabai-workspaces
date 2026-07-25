@@ -5,8 +5,10 @@ import YWRCore
 /// registry so behavior stays consistent.
 struct SnapshotCommand: Command {
     let name = "snapshot"
-    let summary = "Save or list layout snapshots"
-    var usage: String { "ywr snapshot <save|list> [name] [--native]" }
+    let summary = "Save, list, or delete layout snapshots"
+    var usage: String {
+        "ywr snapshot save <name> [--native] | ywr snapshot list | ywr snapshot delete <name>"
+    }
 
     private let capturer: SnapshotCapturing
     private let nativeCapturer: NativeCapturer
@@ -28,8 +30,20 @@ struct SnapshotCommand: Command {
         switch sub {
         case "save": return try save(rest)
         case "list": return try list(rest)
+        case "delete": return try delete(rest)
         default: throw CLIError.usage(usage)
         }
+    }
+
+    private func delete(_ args: [String]) throws -> Int32 {
+        // Exactly one positional name, no flags — reject extras so a typo like
+        // `snapshot delete home extar` fails loudly instead of deleting `home`.
+        guard args.count == 1, let snapName = args.first, !snapName.hasPrefix("--") else {
+            throw CLIError.usage("ywr snapshot delete <name>")
+        }
+        try store.delete(name: snapName)
+        print("Deleted snapshot '\(snapName)'")
+        return 0
     }
 
     private func save(_ args: [String]) throws -> Int32 {
