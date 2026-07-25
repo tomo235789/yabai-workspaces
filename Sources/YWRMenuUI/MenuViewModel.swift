@@ -59,6 +59,19 @@ public final class MenuViewModel: ObservableObject {
         }
     }
 
+    /// Restore across every desktop (walks Spaces). Heavier than `restore`, so
+    /// it's a separate action the user opts into.
+    public func restoreAcrossDesktops(name: String) async {
+        guard !isBusy else { return }   // ignore re-entrant taps while working
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            status = try await actions.restoreAcrossDesktops(name: name)
+        } catch {
+            status = "Restore failed: \(error)"
+        }
+    }
+
     public func restoreAuto() async {
         guard !isBusy else { return }   // ignore re-entrant taps while working
         isBusy = true

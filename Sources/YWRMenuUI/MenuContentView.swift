@@ -40,7 +40,7 @@ public struct MenuContentView: View {
                 .disabled(model.isBusy)
 
             if !model.snapshots.isEmpty {
-                Text("Saved — click to restore:")
+                Text("Saved — click a name to restore, ▦ to restore across all desktops:")
                     .font(theme.bodyFont)
                     .foregroundColor(theme.textSecondary)
 
@@ -58,6 +58,18 @@ public struct MenuContentView: View {
                         .buttonStyle(.plain)
                         .disabled(model.isBusy)
 
+                        // Restore across ALL desktops: walks Spaces so windows on
+                        // other desktops are placed too (flips the screen). Kept
+                        // separate from the quick current-desktop click above.
+                        Button { Task { await model.restoreAcrossDesktops(name: name) } } label: {
+                            Image(systemName: "square.grid.2x2")
+                                .foregroundColor(theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Restore '\(name)' across all desktops")
+                        .accessibilityLabel("Restore \(name) across all desktops")
+
                         // One-click overwrite: re-save the current layout into this
                         // existing name without retyping it into the field.
                         Button { Task { await model.overwrite(name: name) } } label: {
@@ -67,6 +79,7 @@ public struct MenuContentView: View {
                         .buttonStyle(.plain)
                         .disabled(model.isBusy)
                         .help("Overwrite '\(name)' with the current layout")
+                        .accessibilityLabel("Overwrite \(name) with the current layout")
 
                         Button { pendingDelete = name } label: {
                             Image(systemName: "trash")
@@ -75,6 +88,7 @@ public struct MenuContentView: View {
                         .buttonStyle(.plain)
                         .disabled(model.isBusy)
                         .help("Delete '\(name)'")
+                        .accessibilityLabel("Delete \(name)")
                     }
                 }
             }

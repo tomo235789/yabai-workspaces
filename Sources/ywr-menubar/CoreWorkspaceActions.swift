@@ -16,6 +16,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
     private let availability: YabaiAvailability
     private let nativeCapturer: NativeCapturer
     private let nativeRestorer: NativeRestorer
+    private let nativeWalker: WalkingNativeRestorer
     private let logger: any EventLogging
 
     init(logger: any EventLogging = ConsoleLogger()) {
@@ -29,8 +30,10 @@ actor CoreWorkspaceActions: WorkspaceActions {
         self.autoSelector = AutoSelector()
         self.availability = YabaiAvailability(runner: runner)
         let nativeEnumerator = CGWindowEnumerator()
+        let nativeController = AXWindowController()
         self.nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
-        self.nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: AXWindowController())
+        self.nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
+        self.nativeWalker = WalkingNativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
         self.logger = logger
     }
 
@@ -76,6 +79,15 @@ actor CoreWorkspaceActions: WorkspaceActions {
             let report = nativeRestorer.restore(snapshot)
             return nativeStatus(name: name, report: report)
         }
+    }
+
+    /// Restore across every desktop by walking Spaces. Always uses the native
+    /// walker (the whole point is repositioning windows on other desktops, which
+    /// only the native/AX path does). The screen will flip through each desktop.
+    func restoreAcrossDesktops(name: String) async throws -> String {
+        let snapshot = try store.load(name: name)
+        let report = nativeWalker.restore(snapshot)
+        return nativeStatus(name: name, report: report)
     }
 
     /// Human-readable native-restore result. Always reports the real counts and

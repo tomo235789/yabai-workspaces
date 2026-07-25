@@ -112,9 +112,10 @@ Without yabai, restore an explicit snapshot by name: `ywr restore home --native`
 ## Menu-bar app
 
 `ywr-menubar` mirrors the CLI in a SwiftUI menu-bar popover: type a name to
-save, click a saved layout to restore it, re-save it in place with its 🔄 button,
-delete one with its 🗑 button (with a confirmation), or hit **Restore (auto)**.
-Colors and fonts come from an external `theme.json`.
+save, **click a saved layout** to restore it (in native mode, on the current
+desktop), use its **▦ button** to restore across **all desktops** (walks Spaces —
+see below), re-save it in place with 🔄, delete one with 🗑 (with a confirmation),
+or hit **Restore (auto)**. Colors and fonts come from an external `theme.json`.
 
 ```sh
 swift run ywr-menubar

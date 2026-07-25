@@ -160,6 +160,28 @@ What it does / limits:
 - ⚠️ Needs **Accessibility** permission. Granting **Screen Recording** too improves
   matching same-title windows across app restarts.
 
+**Restore across all desktops (experimental).** Public APIs can't *move* a window
+to another Space, but a window can be repositioned once its desktop is active. So
+`--walk-spaces` switches through each desktop and places the windows already on
+it, reproducing a multi-desktop layout in one go — then returns you to where you
+started:
+
+```sh
+ywr restore home --native --walk-spaces
+```
+
+- The screen **flips through each desktop** and it takes a few seconds.
+- Windows are **not moved between desktops** — each is repositioned on the desktop
+  it currently lives on.
+- Needs the **"Mission Control ▸ Move left/right a space"** keyboard shortcuts
+  enabled (macOS default) plus Accessibility permission.
+- Designed for the **spanning** setup ("Displays have separate Spaces" OFF),
+  where one Space set spans all displays. With separate Spaces ON, Ctrl+Arrow
+  only moves the focused display's Spaces — use the **yabai backend** there.
+- In the menu-bar app this is the **▦ button** next to each snapshot. In native
+  mode a plain name-click restores only the **current** desktop; with the yabai
+  backend a name-click restores each window's saved Space/Display directly.
+
 ---
 
 ## 7. Menu-bar app
@@ -227,6 +249,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr restore --auto` | Auto-pick the matching snapshot |
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |
 | `ywr restore <name> --positions-only` | Geometry only; no Space/display moves |
+| `ywr restore <name> --native --walk-spaces` | Restore across all desktops (walks Spaces) |
 | `ywr snapshot save <name> --native` / `ywr restore <name> --native` | Save/restore geometry without yabai |
 | `ywr profile capture <name>` / `list` | Record / list display profiles |
 | `ywr daemon [--interval <s>]` | Auto-restore by polling |

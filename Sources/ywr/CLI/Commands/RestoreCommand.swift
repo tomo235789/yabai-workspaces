@@ -4,19 +4,21 @@ import YWRCore
 struct RestoreCommand: Command {
     let name = "restore"
     let summary = "Restore a saved layout (use --dry-run to preview, --auto to pick)"
-    var usage: String { "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native]" }
+    var usage: String { "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native] [--walk-spaces]" }
 
     private let store: SnapshotStore
     private let restorer: SnapshotRestorer
     private let nativeRestorer: NativeRestorer
+    private let nativeWalker: WalkingNativeRestorer
     private let availability: YabaiAvailabilityChecking
     private let yabai: YabaiQuerying
     private let autoSelector: AutoSelector
 
-    init(store: SnapshotStore, restorer: SnapshotRestorer, nativeRestorer: NativeRestorer, availability: YabaiAvailabilityChecking, yabai: YabaiQuerying, autoSelector: AutoSelector = AutoSelector()) {
+    init(store: SnapshotStore, restorer: SnapshotRestorer, nativeRestorer: NativeRestorer, nativeWalker: WalkingNativeRestorer, availability: YabaiAvailabilityChecking, yabai: YabaiQuerying, autoSelector: AutoSelector = AutoSelector()) {
         self.store = store
         self.restorer = restorer
         self.nativeRestorer = nativeRestorer
+        self.nativeWalker = nativeWalker
         self.availability = availability
         self.yabai = yabai
         self.autoSelector = autoSelector
@@ -32,6 +34,10 @@ struct RestoreCommand: Command {
 
         if createSpaces && positionsOnly {
             throw CLIError.message("--create-spaces cannot be combined with --positions-only (positions-only does not touch Spaces).")
+        }
+        // --walk-spaces is native-only; --auto is yabai-only. They can't combine.
+        if auto && args.contains("--walk-spaces") {
+            throw CLIError.message("--walk-spaces cannot be combined with --auto (--auto needs the yabai backend; walking Spaces is native-only).")
         }
 
         // --auto needs the yabai backend (it matches on display fingerprints).
@@ -57,10 +63,14 @@ struct RestoreCommand: Command {
         // Use the native backend when forced (--native), when yabai isn't
         // running, OR when the snapshot itself is native — a native snapshot's
         // zeroed geometry can't go through the yabai planner.
+        // `--walk-spaces` is a native-only capability, so it also forces the
+        // native backend even when yabai is up (otherwise the flag is silently
+        // ignored and an ordinary yabai restore runs).
+        let walkSpaces = args.contains("--walk-spaces")
         let snapshotIsNative = snapshot.displayProfile.fingerprint == NativeCapturer.nativeFingerprint
-        if nativeFlag || yabaiDown || snapshotIsNative {
+        if nativeFlag || yabaiDown || snapshotIsNative || walkSpaces {
             if createSpaces { throw CLIError.message("--create-spaces requires the yabai backend.") }
-            return nativeRestore(snapshot, dryRun: dryRun)
+            return nativeRestore(snapshot, dryRun: dryRun, walkSpaces: walkSpaces)
         }
 
         if dryRun {
@@ -70,14 +80,17 @@ struct RestoreCommand: Command {
     }
 
     /// Geometry-only restore through the yabai-independent Accessibility backend.
-    private func nativeRestore(_ snapshot: Snapshot, dryRun: Bool) -> Int32 {
+    private func nativeRestore(_ snapshot: Snapshot, dryRun: Bool, walkSpaces: Bool) -> Int32 {
         print("Native backend (yabai-independent): geometry-only restore.")
+        if walkSpaces {
+            print("Walking desktops: switching through each Space to place windows on every desktop.")
+        }
         if dryRun {
             print("Dry run for '\(snapshot.name)' — \(snapshot.windows.count) saved window(s) would be considered for app+title matching against live windows (unmatched ones are skipped).")
             print("No changes made (dry run).")
             return 0
         }
-        let report = nativeRestorer.restore(snapshot)
+        let report = walkSpaces ? nativeWalker.restore(snapshot) : nativeRestorer.restore(snapshot)
         print("Restored '\(snapshot.name)': \(report.moved.count) window(s) repositioned.")
         guard !report.failures.isEmpty else { return 0 }
         // When nothing moved and AX couldn't read any window ("no accessible

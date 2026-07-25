@@ -20,8 +20,12 @@ let profileCapturer = ProfileCapturer(yabai: yabai)
 // Native (yabai-independent) backend for configurations where yabai can't run.
 let availability = YabaiAvailability(runner: runner)
 let nativeEnumerator = CGWindowEnumerator()
+let nativeController = AXWindowController()
 let nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
-let nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: AXWindowController())
+let nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
+// Experimental multi-desktop restore: walks Spaces so windows on other desktops
+// are repositioned too (opt-in via `restore --walk-spaces`).
+let nativeWalker = WalkingNativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
 
 let doctor = Doctor(checks: [
     YabaiInstalledCheck(runner: runner),
@@ -53,7 +57,7 @@ let signalInstaller = SignalInstaller(runner: runner, ywrInvocation: "\(ywrPath)
 let registry = CommandRegistry(commands: [
     DoctorCommand(doctor: doctor),
     SnapshotCommand(capturer: capturer, nativeCapturer: nativeCapturer, availability: availability, store: store),
-    RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, availability: availability, yabai: yabai),
+    RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, nativeWalker: nativeWalker, availability: availability, yabai: yabai),
     ProfileCommand(capturer: profileCapturer, store: profileStore),
     DaemonCommand(monitorFactory: daemonFactory),
     SignalCommand(installer: signalInstaller)
