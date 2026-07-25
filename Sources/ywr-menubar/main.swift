@@ -44,17 +44,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
-    /// Actively request the permissions the native backend needs, so the app
-    /// registers itself in System Settings and the user gets a prompt — otherwise
-    /// it silently fails the AX calls and never appears in the permission lists.
+    /// Requests the permissions the native backend needs — but ONLY the ones not
+    /// already granted, so an already-configured setup shows no prompt at all.
+    /// Preflighting first also keeps the app from re-registering / re-prompting on
+    /// every launch once the user has granted access in System Settings.
     private func requestPermissions() {
-        // Accessibility (required to move/resize windows). The prompt option
-        // both shows the system dialog and adds the app to the Accessibility list.
-        // The key is spelled out to avoid the non-Sendable global under Swift 6.
-        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-        // Screen Recording (optional: lets window titles be captured for better
-        // matching). Requesting it registers the app in that list too.
-        _ = CGRequestScreenCaptureAccess()
+        // Accessibility (required to move/resize windows). Already trusted → do
+        // nothing; otherwise the prompt option shows the dialog and adds the app
+        // to the Accessibility list. The key is spelled out to avoid the
+        // non-Sendable global under Swift 6.
+        if !AXIsProcessTrusted() {
+            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        }
+        // Screen Recording (optional: improves window-title matching). Preflight
+        // so we never prompt when it's already granted.
+        if !CGPreflightScreenCaptureAccess() {
+            _ = CGRequestScreenCaptureAccess()
+        }
     }
 
     @objc private func handleClick() {
