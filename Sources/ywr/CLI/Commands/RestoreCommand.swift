@@ -36,7 +36,9 @@ struct RestoreCommand: Command {
 
         // --auto needs the yabai backend (it matches on display fingerprints).
         if auto {
-            if nativeFlag { throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).") }
+            if nativeFlag || yabaiDown {
+                throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).")
+            }
             guard let selected = try resolveAuto() else { return 1 }
             if dryRun {
                 return try previewPlan(for: selected, createSpaces: createSpaces, positionsOnly: positionsOnly)
