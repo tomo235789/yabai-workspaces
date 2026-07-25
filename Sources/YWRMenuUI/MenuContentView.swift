@@ -58,6 +58,16 @@ public struct MenuContentView: View {
                         .buttonStyle(.plain)
                         .disabled(model.isBusy)
 
+                        // One-click overwrite: re-save the current layout into this
+                        // existing name without retyping it into the field.
+                        Button { Task { await model.overwrite(name: name) } } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Overwrite '\(name)' with the current layout")
+
                         Button { pendingDelete = name } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(theme.error)

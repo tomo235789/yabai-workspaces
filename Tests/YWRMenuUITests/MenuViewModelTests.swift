@@ -21,7 +21,7 @@ private final class FakeActions: WorkspaceActions, @unchecked Sendable {
     func save(name: String) async throws {
         if saveShouldThrow { throw SaveError() }
         savedNames.append(name)
-        names.append(name)
+        if !names.contains(name) { names.append(name) }   // overwrite must not duplicate
     }
     func restore(name: String) async throws -> String {
         restoredNames.append(name)
@@ -86,6 +86,25 @@ final class MenuViewModelTests: XCTestCase {
         await model.restoreAuto()
         XCTAssertEqual(model.status, "Restored 'home': 3 moved, 0 failed")
         XCTAssertFalse(model.isBusy)
+    }
+
+    func testOverwriteResavesExistingNameWithUpdatedStatus() async {
+        let actions = FakeActions(names: ["home", "office"])
+        let model = MenuViewModel(actions: actions)
+        await model.overwrite(name: "home")
+        XCTAssertEqual(actions.savedNames, ["home"])          // re-saved under the same name
+        XCTAssertEqual(model.snapshots, ["home", "office"])   // refreshed, no duplicate
+        XCTAssertEqual(model.status, "Updated 'home'")        // distinct from a fresh Save
+        XCTAssertFalse(model.isBusy)
+    }
+
+    func testOverwriteFailureShowsError() async {
+        let actions = FakeActions(names: ["home"], saveShouldThrow: true)
+        let model = MenuViewModel(actions: actions)
+        await model.overwrite(name: "home")
+        XCTAssertTrue(model.status.hasPrefix("Save failed:"))
+        XCTAssertTrue(actions.savedNames.isEmpty)             // nothing saved on failure
+        XCTAssertFalse(model.isBusy)                          // busy flag cleared even on error
     }
 
     func testDeleteRemovesSnapshotAndRefreshes() async {

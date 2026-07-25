@@ -70,6 +70,21 @@ public final class MenuViewModel: ObservableObject {
         }
     }
 
+    /// Re-save the current layout into an existing snapshot name — the one-click
+    /// "overwrite" path so you don't have to retype the name into the field.
+    public func overwrite(name: String) async {
+        guard !isBusy else { return }   // ignore re-entrant taps while working
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await actions.save(name: name)
+            status = "Updated '\(name)'"
+            snapshots = await actions.snapshotNames()
+        } catch {
+            status = "Save failed: \(error)"
+        }
+    }
+
     public func delete(name: String) async {
         guard !isBusy else { return }   // ignore re-entrant taps while working
         isBusy = true
