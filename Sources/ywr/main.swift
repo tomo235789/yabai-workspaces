@@ -17,9 +17,16 @@ let restorer = SnapshotRestorer(yabai: yabai, launcher: launcher)
 let profileStore = FileProfileStore(paths: paths)
 let profileCapturer = ProfileCapturer(yabai: yabai)
 
+// Native (yabai-independent) backend for configurations where yabai can't run.
+let availability = YabaiAvailability(runner: runner)
+let nativeEnumerator = CGWindowEnumerator()
+let nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
+let nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: AXWindowController())
+
 let doctor = Doctor(checks: [
     YabaiInstalledCheck(runner: runner),
     YabaiQueryableCheck(yabai: yabai),
+    ActiveBackendCheck(availability: availability),
     MacOSSettingsNoticeCheck()
 ])
 
@@ -45,8 +52,8 @@ let signalInstaller = SignalInstaller(runner: runner, ywrInvocation: "\(ywrPath)
 
 let registry = CommandRegistry(commands: [
     DoctorCommand(doctor: doctor),
-    SnapshotCommand(capturer: capturer, store: store),
-    RestoreCommand(store: store, restorer: restorer, yabai: yabai),
+    SnapshotCommand(capturer: capturer, nativeCapturer: nativeCapturer, availability: availability, store: store),
+    RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, availability: availability, yabai: yabai),
     ProfileCommand(capturer: profileCapturer, store: profileStore),
     DaemonCommand(monitorFactory: daemonFactory),
     SignalCommand(installer: signalInstaller)

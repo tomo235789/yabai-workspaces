@@ -4,16 +4,20 @@ import YWRCore
 struct RestoreCommand: Command {
     let name = "restore"
     let summary = "Restore a saved layout (use --dry-run to preview, --auto to pick)"
-    var usage: String { "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only]" }
+    var usage: String { "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native]" }
 
     private let store: SnapshotStore
     private let restorer: SnapshotRestorer
+    private let nativeRestorer: NativeRestorer
+    private let availability: YabaiAvailabilityChecking
     private let yabai: YabaiQuerying
     private let autoSelector: AutoSelector
 
-    init(store: SnapshotStore, restorer: SnapshotRestorer, yabai: YabaiQuerying, autoSelector: AutoSelector = AutoSelector()) {
+    init(store: SnapshotStore, restorer: SnapshotRestorer, nativeRestorer: NativeRestorer, availability: YabaiAvailabilityChecking, yabai: YabaiQuerying, autoSelector: AutoSelector = AutoSelector()) {
         self.store = store
         self.restorer = restorer
+        self.nativeRestorer = nativeRestorer
+        self.availability = availability
         self.yabai = yabai
         self.autoSelector = autoSelector
     }
@@ -23,9 +27,24 @@ struct RestoreCommand: Command {
         let auto = args.contains("--auto")
         let createSpaces = args.contains("--create-spaces")
         let positionsOnly = args.contains("--positions-only")
+        let native = args.contains("--native") || !availability.isAvailable()
 
         if createSpaces && positionsOnly {
             throw CLIError.message("--create-spaces cannot be combined with --positions-only (positions-only does not touch Spaces).")
+        }
+
+        // Native backend: yabai-independent, geometry-only restore by name.
+        if native {
+            // These need the yabai backend; don't silently ignore them.
+            if auto { throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).") }
+            if createSpaces { throw CLIError.message("--create-spaces requires the yabai backend.") }
+            let positional = args.filter { !$0.hasPrefix("--") }
+            guard let snapName = positional.first else {
+                throw CLIError.usage("ywr restore <name> --native")
+            }
+            let snapshot: Snapshot
+            do { snapshot = try store.load(name: snapName) } catch { throw CLIError.message("\(error)") }
+            return nativeRestore(snapshot, dryRun: dryRun)
         }
 
         let snapshot: Snapshot
@@ -48,6 +67,28 @@ struct RestoreCommand: Command {
             return try previewPlan(for: snapshot, createSpaces: createSpaces, positionsOnly: positionsOnly)
         }
         return try executeRestore(snapshot, createSpaces: createSpaces, positionsOnly: positionsOnly)
+    }
+
+    /// Geometry-only restore through the yabai-independent Accessibility backend.
+    private func nativeRestore(_ snapshot: Snapshot, dryRun: Bool) -> Int32 {
+        print("Native backend (yabai-independent): geometry-only restore.")
+        if dryRun {
+            print("Dry run for '\(snapshot.name)' — \(snapshot.windows.count) saved window(s) would be considered for app+title matching against live windows (unmatched ones are skipped).")
+            print("No changes made (dry run).")
+            return 0
+        }
+        let report = nativeRestorer.restore(snapshot)
+        print("Restored '\(snapshot.name)': \(report.moved.count) window(s) repositioned.")
+        guard !report.failures.isEmpty else { return 0 }
+        print("\n\(report.failures.count) window(s) could not be restored:")
+        for o in report.failures {
+            switch o.status {
+            case .unmatched: print("  • \(o.label): no matching window found")
+            case let .failed(reason): print("  • \(o.label): \(reason)")
+            default: break
+            }
+        }
+        return 1
     }
 
     /// Uses gemma-authored `AutoSelector` to pick the snapshot matching the

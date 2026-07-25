@@ -74,6 +74,25 @@ public struct YabaiQueryableCheck: DiagnosticCheck {
 }
 
 /// A static advisory about macOS setup the tool can't verify programmatically.
+/// Reports which backend `save`/`restore` will use right now.
+public struct ActiveBackendCheck: DiagnosticCheck {
+    public let name = "active backend"
+    private let availability: YabaiAvailabilityChecking
+
+    public init(availability: YabaiAvailabilityChecking) {
+        self.availability = availability
+    }
+
+    public func run() -> CheckResult {
+        if availability.isAvailable() {
+            return CheckResult(name: name, status: .pass,
+                               message: "yabai responding. Full Space/Display restore also needs separate Spaces + the yabai scripting-addition; otherwise ywr falls back to positions-only. Use --native to force geometry-only.")
+        }
+        return CheckResult(name: name, status: .warn,
+                           message: "native / Accessibility (yabai not answering) — geometry-only save & restore. Needs Accessibility permission.")
+    }
+}
+
 public struct MacOSSettingsNoticeCheck: DiagnosticCheck {
     public let name = "macOS settings"
 

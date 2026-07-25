@@ -6,13 +6,17 @@ import YWRCore
 struct SnapshotCommand: Command {
     let name = "snapshot"
     let summary = "Save or list layout snapshots"
-    var usage: String { "ywr snapshot <save|list> [args]" }
+    var usage: String { "ywr snapshot <save|list> [name] [--native]" }
 
     private let capturer: SnapshotCapturing
+    private let nativeCapturer: NativeCapturer
+    private let availability: YabaiAvailabilityChecking
     private let store: SnapshotStore
 
-    init(capturer: SnapshotCapturing, store: SnapshotStore) {
+    init(capturer: SnapshotCapturing, nativeCapturer: NativeCapturer, availability: YabaiAvailabilityChecking, store: SnapshotStore) {
         self.capturer = capturer
+        self.nativeCapturer = nativeCapturer
+        self.availability = availability
         self.store = store
     }
 
@@ -29,10 +33,19 @@ struct SnapshotCommand: Command {
     }
 
     private func save(_ args: [String]) throws -> Int32 {
-        guard let snapName = args.first else {
-            throw CLIError.usage("ywr snapshot save <name>")
+        guard let snapName = args.first(where: { !$0.hasPrefix("--") }) else {
+            throw CLIError.usage("ywr snapshot save <name> [--native]")
         }
-        let snapshot = try capturer.capture(name: snapName, at: Date())
+        // Use the yabai-independent backend when asked (--native) or when yabai
+        // isn't available (e.g. "Displays have separate Spaces" is off).
+        let useNative = args.contains("--native") || !availability.isAvailable()
+        let snapshot: Snapshot
+        if useNative {
+            print("Using native backend (yabai unavailable or --native): geometry-only capture.")
+            snapshot = nativeCapturer.capture(name: snapName, at: Date())
+        } else {
+            snapshot = try capturer.capture(name: snapName, at: Date())
+        }
         try store.save(snapshot)
         print("Saved snapshot '\(snapName)': \(snapshot.windows.count) window(s), \(snapshot.spaces.count) space(s)")
         print("Display profile: \(snapshot.displayProfile.fingerprint)")
