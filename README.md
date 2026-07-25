@@ -2,126 +2,157 @@
 
 English | [日本語](README.ja.md)
 
-Save your macOS window layout (displays, Spaces, window placement) as a named
-snapshot and restore it when the same display configuration comes back. `ywr` is
-a thin **companion CLI** for [yabai](https://github.com/koekeishiya/yabai) — it
-does not fork or bundle yabai; it shells out to `yabai -m`.
+**Save your macOS window layout and put it back with one command** — across
+displays and virtual desktops. Works with [yabai](https://github.com/koekeishiya/yabai)
+for full Space/Display restore, and falls back to a built-in, yabai-independent
+backend when yabai can't run.
 
-## Status
+<p align="center">
+  <img src="docs/images/menubar.png" alt="ywr menu-bar app" width="320">
+</p>
 
-Implemented:
+---
 
-- **CLI (`ywr`)**: `doctor`, `snapshot save/list`, `restore` (with `--dry-run`,
-  `--auto`, `--positions-only`, `--native`), `profile capture/list`, `daemon`
-  (watch for display changes and auto-restore), and `signal` (yabai signals).
-- **Native backend**: when yabai can't run ("Displays have separate Spaces" off),
-  ywr saves/restores window position and size — including across displays —
-  through macOS Accessibility, independent of yabai (`--native` or automatic).
-- **Menu-bar app (`ywr-menubar`)**: a SwiftUI `MenuBarExtra` to save the current
-  layout and trigger auto-restore, themed from an external file.
+## Why
+
+Multi-monitor setups scramble your windows every time you dock, undock, or
+change displays. `ywr` captures where everything is and restores it — window
+positions, sizes, the Space/Display each window lives on, and which window was
+frontmost.
+
+## How it works
+
+`ywr` picks a backend automatically based on your setup:
+
+```mermaid
+flowchart TD
+    A["ywr snapshot save / restore"] --> B{"yabai answering?<br/>(needs 'Displays have separate Spaces' ON)"}
+    B -->|Yes| C["<b>yabai backend</b><br/>full restore:<br/>position + size<br/>+ Space + Display"]
+    B -->|"No, or --native"| D["<b>native backend</b><br/>macOS Accessibility<br/>geometry-only:<br/>position + size<br/>+ across displays"]
+```
+
+- **yabai backend** — the full experience: also moves windows to the right
+  Space and Display. Needs yabai running (which requires *Displays have separate
+  Spaces* = ON) plus the scripting-addition for cross-Space moves.
+- **native backend** — no yabai required. Restores window position/size
+  (including moving across monitors) and the frontmost window, using the macOS
+  Accessibility API. This is what makes ywr work in the "spanning desktop"
+  configuration where yabai refuses to start.
+
+## Quick start
+
+```sh
+# 1. (optional) install yabai for full Space/Display restore. Cross-Space moves
+#    also require its scripting-addition — see the yabai wiki. Without yabai,
+#    ywr uses the native backend (position/size + display, no Space moves).
+brew install koekeishiya/formulae/yabai && yabai --start-service
+
+# 2. build ywr and put it on your PATH
+swift build -c release && mkdir -p ~/.local/bin && cp .build/release/ywr ~/.local/bin/ywr
+
+# 3. check your environment (shows which backend is active)
+ywr doctor
+
+# 4. save the current layout, then restore it later
+ywr snapshot save home
+ywr restore home            # preview first with: ywr restore home --dry-run
+```
+
+Permissions differ by backend: the **native backend** needs **Accessibility**
+granted to whatever runs `ywr` (Terminal, etc.); the **yabai backend** instead
+needs **yabai itself** to have Accessibility, plus its scripting-addition for
+cross-Space moves — `ywr` only shells out to `yabai -m`.
+
+## What restore does
+
+```mermaid
+flowchart LR
+    subgraph Save["ywr snapshot save"]
+      direction TB
+      S1["read live windows"] --> S2["snapshot.json<br/>~/.config/yabai-workspaces"]
+    end
+    subgraph Restore["ywr restore"]
+      direction TB
+      R1["read snapshot"] --> R2["match saved ↔ live<br/>by app + title + size"] --> R3["move · resize · focus<br/>(Space/Display if available)"]
+    end
+    Save -.-> Restore
+```
+
+Restore matches each saved window to a live one, then repositions it. Windows
+it can't place are listed at the end — nothing fails silently.
+
+## Backends at a glance
+
+| Capability | yabai backend | native backend |
+|---|:---:|:---:|
+| Window position & size | ✅ | ✅ |
+| Move across displays | ✅ | ✅ |
+| Restore frontmost window | ✅ | ✅ |
+| Move to the saved **Space** | ✅ | ❌ |
+| Works with *separate Spaces* OFF | ❌ (yabai won't run) | ✅ |
+| Extra requirement | yabai + scripting-addition | Accessibility (+ Screen Recording helps) |
+
+Force the native backend anytime with `--native`
+(e.g. `ywr restore home --native`).
+
+## Auto-restore
+
+Restore automatically when your displays change — pick whichever you like.
+**These require the yabai backend** (they use yabai's display info/events and
+are not available in the native, yabai-less setup):
+
+```sh
+ywr restore --auto        # pick the snapshot matching the current displays
+ywr daemon                # watch for display changes and auto-restore (polling)
+ywr signal install        # let yabai fire restore on display events (no daemon)
+```
+
+Without yabai, restore an explicit snapshot by name: `ywr restore home --native`.
+
+## Menu-bar app
+
+`ywr-menubar` mirrors the CLI in a SwiftUI menu-bar popover: type a name to
+save, click a saved layout to restore it, or hit **Restore (auto)**. Colors and
+fonts come from an external `theme.json`.
+
+```sh
+swift run ywr-menubar
+```
+
+> Note: the menu-bar app uses the **yabai backend**, so it needs yabai running.
+> The CLI's automatic native fallback isn't wired into it yet — use the `ywr`
+> CLI with `--native` in yabai-less setups.
 
 ## Documentation
 
-- **[Usage guide](docs/usage.md)** — install, core workflow, auto-restore, theming, troubleshooting ([日本語](docs/usage.ja.md))
-
-## Requirements
-
-This tool requires yabai to be installed and configured separately.
-
-```sh
-brew install koekeishiya/formulae/yabai
-yabai --start-service
-```
-
-Run `ywr doctor` to verify your environment.
-
-## Usage
-
-```sh
-ywr doctor                 # check yabai + environment
-ywr snapshot save home     # capture the current layout as "home"
-ywr snapshot list          # list saved snapshots
-ywr restore home --dry-run # preview what restore would do
-ywr restore home           # move windows back into place
-ywr restore --auto         # pick the snapshot matching the current displays
-ywr restore home --create-spaces  # also create missing labeled Spaces first
-ywr profile capture home   # record the current display configuration
-ywr daemon --interval 2    # auto-restore whenever the displays change (polling)
-ywr signal install         # let yabai auto-restore on display events (no daemon)
-```
-
-`ywr daemon` (polling) and `ywr signal install` (event-driven via yabai signals)
-are two ways to trigger auto-restore automatically — use whichever you prefer.
-Restoring also brings back each window's floating / minimized / fullscreen state
-and refocuses the window that was active at capture time.
-
-Snapshots and profiles are stored as JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
-(default `~/.config/yabai-workspaces`).
-
-### Theming the menu-bar app
-
-Colors and fonts live in a separate JSON file so they can be changed without
-touching code. Drop a `theme.json` next to your snapshots
-(`~/.config/yabai-workspaces/theme.json`); if absent, a built-in dark default is
-used. Schema:
-
-```json
-{
-  "colors": {
-    "accent": "#4C8DFF", "background": "#1E1E1E", "surface": "#2A2A2A",
-    "textPrimary": "#FFFFFF", "textSecondary": "#A0A0A0",
-    "success": "#3FB950", "warning": "#D29922", "error": "#F85149"
-  },
-  "font": { "family": "System", "regularSize": 13, "titleSize": 15, "monospacedDigits": true }
-}
-```
-
-## Build & test
-
-```sh
-swift build                # builds the `ywr` binary
-swift test                 # unit tests — XCTest suite (requires Xcode)
-bash Tests/e2e/run.sh      # end-to-end: runs the real binary against a fake yabai
-bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
-```
-
-`scripts/report.sh` runs the unit and e2e suites and renders the menu-bar UI to
-PNGs (headlessly, via `ImageRenderer`), then assembles a single self-contained
-`build/report/report.html` with the results and embedded screenshots.
-
-The e2e suite (`Tests/e2e/`) drives the actual `ywr` binary as a black box
-against a fake `yabai` on `PATH` — the CLI analogue of a Playwright browser
-test — asserting on stdout, exit codes, saved JSON, and the control commands
-ywr sends to yabai.
+- **[Usage guide](docs/usage.md)** — every command, the native backend, theming, troubleshooting ([日本語](docs/usage.ja.md))
+- **[Roadmap](ROADMAP.md)** · **[PRD](PRD.md)**
 
 ## Architecture
 
-The code is split into a testable core library (`YWRCore`) and a thin CLI
-(`ywr`) that is nothing more than a composition root plus argument dispatch.
-The design leans on SOLID:
+A testable core (`YWRCore`) with thin executables around it. Every side effect
+(yabai, Accessibility, the filesystem) sits behind a protocol, so the whole core
+is unit-tested with in-memory fakes.
 
-- **Single Responsibility** — one type per job: `SnapshotCapturer` (read state →
-  snapshot), `RestorePlanner` (snapshot + live state → plan), `SnapshotRestorer`
-  (execute a plan), `DisplayMatcher` (score displays), `FileSnapshotStore`
-  (persist), `Doctor` (diagnose).
-- **Open/Closed** — new behavior slots in without editing dispatchers: CLI
-  verbs conform to `Command` and register in `CommandRegistry`; environment
-  checks conform to `DiagnosticCheck`; scoring is driven by `MatchWeights` data.
-- **Liskov** — every collaborator is used only through its protocol, and the
-  in-memory fakes in the test suite substitute for the real ones transparently.
-- **Interface Segregation** — yabai access is split into `YabaiQuerying` (reads)
-  and `YabaiControlling` (mutations) so capture/doctor can't touch state.
-- **Dependency Inversion** — all side effects funnel through the `CommandRunner`
-  abstraction; the entire core is unit-tested without a real machine or yabai.
+```mermaid
+flowchart TD
+    CLI["ywr<br/>(CLI)"] --> Core["YWRCore<br/>capture · plan · restore · match"]
+    Menu["ywr-menubar<br/>(SwiftUI app)"] --> Core
+    Menu --> UI["YWRMenuUI"]
+    Menu --> Theme["YWRTheme"]
+    Shot["ywr-shot<br/>(screenshots)"] --> UI
+    Core --> Yabai["yabai backend<br/>YabaiClient"]
+    Core --> Native["native backend<br/>CGWindowList + AX"]
+```
 
-The restore path deliberately **separates planning from execution**: the planner
-is a pure function (so `--dry-run` is exact and everything is testable), and the
-executor applies the plan and reports every window's outcome — no failure is
-swallowed silently.
+```sh
+swift build                # build the ywr binary
+swift test                 # unit tests (XCTest; needs Xcode)
+bash Tests/e2e/run.sh      # end-to-end: real binary vs. a fake yabai
+bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
+```
 
 ## License
 
-This project is licensed under the MIT License. See `LICENSE`.
-
-yabai is a separate project licensed under the MIT License.
-This project does not include yabai binaries or source code.
+MIT — see [LICENSE](LICENSE). yabai is a separate MIT-licensed project; ywr does
+not include yabai binaries or source.
