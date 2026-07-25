@@ -42,19 +42,31 @@ public struct AXWindowController: NativeWindowControlling {
     public func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
         let window = try resolveWindow(pid: pid, windowID: windowID)
 
-        var point = CGPoint(x: frame.x, y: frame.y)
-        guard let positionValue = AXValueCreate(.cgPoint, &point) else {
+        // Position uses global coordinates spanning all displays, so setting it
+        // moves the window across monitors. But AX clamps the first setPosition
+        // when the target is on another display or when the size doesn't fit yet,
+        // so we set position, then size, then position AGAIN to land it exactly.
+        try setPosition(window, x: frame.x, y: frame.y)
+        try setSize(window, w: frame.w, h: frame.h)
+        try setPosition(window, x: frame.x, y: frame.y)
+    }
+
+    private func setPosition(_ window: AXUIElement, x: Double, y: Double) throws {
+        var point = CGPoint(x: x, y: y)
+        guard let value = AXValueCreate(.cgPoint, &point) else {
             throw AXWindowError.setFailed("position (AXValueCreate failed)")
         }
-        if AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) != .success {
+        if AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value) != .success {
             throw AXWindowError.setFailed("position")
         }
+    }
 
-        var size = CGSize(width: frame.w, height: frame.h)
-        guard let sizeValue = AXValueCreate(.cgSize, &size) else {
+    private func setSize(_ window: AXUIElement, w: Double, h: Double) throws {
+        var size = CGSize(width: w, height: h)
+        guard let value = AXValueCreate(.cgSize, &size) else {
             throw AXWindowError.setFailed("size (AXValueCreate failed)")
         }
-        if AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) != .success {
+        if AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value) != .success {
             throw AXWindowError.setFailed("size")
         }
     }
