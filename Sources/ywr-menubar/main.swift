@@ -25,8 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: "yabai workspaces")
-            button.image?.isTemplate = true
+            if let image = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: "yabai workspaces") {
+                image.isTemplate = true
+                button.image = image
+            } else {
+                button.title = "ywr"   // fallback so the item is never zero-width
+            }
             button.action = #selector(togglePopover)
             button.target = self
         }
