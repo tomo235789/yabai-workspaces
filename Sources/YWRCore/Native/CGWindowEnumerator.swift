@@ -16,7 +16,9 @@ public struct CGWindowEnumerator: NativeWindowEnumerating {
     public init() {}
 
     public func enumerate() -> [Window] {
-        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) else {
+        // Deliberately NOT .optionOnScreenOnly: that would omit windows on other
+        // Spaces (and minimized ones), silently producing an incomplete capture.
+        guard let windowList = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) else {
             return []
         }
         guard let infoArray = windowList as? [[String: Any]] else {
