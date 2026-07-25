@@ -18,12 +18,12 @@ public enum AXWindowError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .appHasNoWindows(let pid):
-            return "application PID \(pid) has no accessible windows"
-        case .windowNotFound(let pid, let windowID):
-            return "window \(windowID) not found in application PID \(pid)"
-        case .setFailed(let message):
-            return "failed to set window frame: \(message)"
+        case let .appHasNoWindows(pid):
+            "application PID \(pid) has no accessible windows"
+        case let .windowNotFound(pid, windowID):
+            "window \(windowID) not found in application PID \(pid)"
+        case let .setFailed(message):
+            "failed to set window frame: \(message)"
         }
     }
 }

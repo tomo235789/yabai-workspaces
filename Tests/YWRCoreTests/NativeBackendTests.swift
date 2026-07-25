@@ -3,8 +3,13 @@ import XCTest
 
 private final class FakeEnumerator: NativeWindowEnumerating, @unchecked Sendable {
     let windows: [Window]
-    init(_ windows: [Window]) { self.windows = windows }
-    func enumerate() -> [Window] { windows }
+    init(_ windows: [Window]) {
+        self.windows = windows
+    }
+
+    func enumerate() -> [Window] {
+        windows
+    }
 }
 
 private final class FakeController: NativeWindowControlling, @unchecked Sendable {
@@ -14,9 +19,12 @@ private final class FakeController: NativeWindowControlling, @unchecked Sendable
     var failForPids: Set<Int> = []
     struct Boom: Error {}
     func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
-        if failForPids.contains(pid) { throw Boom() }
+        if failForPids.contains(pid) {
+            throw Boom()
+        }
         calls.append(Call(pid: pid, windowID: windowID, frame: frame))
     }
+
     func raise(pid: Int, windowID: UInt32) throws {
         raises.append((pid: pid, windowID: windowID))
     }
@@ -29,7 +37,7 @@ private func liveWindow(_ id: Int, app: String, title: String, pid: Int, x: Doub
 final class NativeBackendTests: XCTestCase {
     func testCaptureBuildsPositionsOnlySnapshot() {
         let cap = NativeCapturer(enumerator: FakeEnumerator([
-            liveWindow(1, app: "Code", title: "proj", pid: 100, x: 10, w: 300)
+            liveWindow(1, app: "Code", title: "proj", pid: 100, x: 10, w: 300),
         ]))
         let snap = cap.capture(name: "n", at: Date(timeIntervalSince1970: 0))
         XCTAssertEqual(snap.displayProfile.fingerprint, "native")
@@ -47,7 +55,7 @@ final class NativeBackendTests: XCTestCase {
         let restorer = NativeRestorer(enumerator: FakeEnumerator(live), controller: controller)
 
         var snap = NativeCapturer(enumerator: FakeEnumerator([
-            liveWindow(1, app: "Code", title: "proj", pid: 100, x: 10, w: 300)
+            liveWindow(1, app: "Code", title: "proj", pid: 100, x: 10, w: 300),
         ])).capture(name: "n", at: Date())
         // (snap has the saved frame x=10 w=300)
 
@@ -55,7 +63,7 @@ final class NativeBackendTests: XCTestCase {
         XCTAssertEqual(report.positionsOnly.count, 1)
         XCTAssertTrue(report.failures.isEmpty)
         XCTAssertEqual(controller.calls.count, 1)
-        XCTAssertEqual(controller.calls[0].pid, 555)          // uses the LIVE pid
+        XCTAssertEqual(controller.calls[0].pid, 555) // uses the LIVE pid
         XCTAssertEqual(controller.calls[0].frame, Frame(x: 10, y: 0, w: 300, h: 100))
         _ = snap
     }
@@ -67,13 +75,13 @@ final class NativeBackendTests: XCTestCase {
         let live = [
             liveWindow(10, app: "A", title: "1", pid: 501),
             liveWindow(20, app: "B", title: "2", pid: 502),
-            liveWindow(30, app: "C", title: "3", pid: 503)
+            liveWindow(30, app: "C", title: "3", pid: 503),
         ]
         let controller = FakeController()
         let restorer = NativeRestorer(enumerator: FakeEnumerator(live), controller: controller)
         let saved: [WindowSnapshot] = [10, 20, 30].map { id in
             WindowSnapshot(app: String(UnicodeScalar(64 + id / 10)!), title: String(id / 10),
-                           role: "AXWindow", pid: id, space: 0, display: 0,       // saved pids differ from live
+                           role: "AXWindow", pid: id, space: 0, display: 0, // saved pids differ from live
                            frame: Frame(x: 0, y: 0, w: 100, h: 100),
                            relativeFrame: RelativeFrame(x: 0, y: 0, w: 0, h: 0),
                            flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false))
@@ -100,15 +108,15 @@ final class NativeBackendTests: XCTestCase {
                            flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false)),
             WindowSnapshot(app: "Safari", title: "docs", role: "AXWindow", pid: 2, space: 0, display: 0,
                            frame: Frame(x: 0, y: 0, w: 100, h: 100), relativeFrame: RelativeFrame(x: 0, y: 0, w: 0, h: 0),
-                           flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false))
+                           flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false)),
         ]
         let snap = Snapshot(name: "n", capturedAt: Date(),
                             displayProfile: DisplayProfile(fingerprint: "native", displays: []),
                             spaces: [], windows: saved)
 
         let report = restorer.restore(snap)
-        XCTAssertEqual(report.failures.count, 2)  // Code setFrame throws → failed; Safari → unmatched
-        XCTAssertEqual(report.failed.count, 1)    // Code matched but setFrame threw
+        XCTAssertEqual(report.failures.count, 2) // Code setFrame throws → failed; Safari → unmatched
+        XCTAssertEqual(report.failed.count, 1) // Code matched but setFrame threw
         XCTAssertEqual(report.unmatched.count, 1) // Safari not running
         XCTAssertNotNil(report.firstFailureReason)
         XCTAssertTrue(report.moved.isEmpty)
@@ -122,7 +130,7 @@ final class NativeBackendTests: XCTestCase {
     /// (even "empty" ones) is uniquely identified.
     private final class FakeSpaces: SpaceSwitching, ActiveSpaceIdentifying, NativeWindowControlling, @unchecked Sendable {
         let count: Int
-        let pidSpace: [Int: Int]        // live pid -> desktop it lives on
+        let pidSpace: [Int: Int] // live pid -> desktop it lives on
         var current: Int
         private(set) var movedPids: [Int] = []
         private(set) var raisedPids: [Int] = []
@@ -131,17 +139,29 @@ final class NativeBackendTests: XCTestCase {
         init(count: Int, pidSpace: [Int: Int], start: Int = 0) {
             self.count = count
             self.pidSpace = pidSpace
-            self.current = start
+            current = start
         }
-        // macOS clamps at the ends (no wrap): a switch past the edge is a no-op.
-        func switchToNextSpace() { current = min(current + 1, count - 1) }
-        func switchToPreviousSpace() { current = max(current - 1, 0) }
-        func currentSpaceID() -> UInt64 { UInt64(current + 1) }   // unique per desktop
-        func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
-            guard pidSpace[pid] == current else { throw Boom() }   // movable only on its active desktop
+
+        /// macOS clamps at the ends (no wrap): a switch past the edge is a no-op.
+        func switchToNextSpace() {
+            current = min(current + 1, count - 1)
+        }
+
+        func switchToPreviousSpace() {
+            current = max(current - 1, 0)
+        }
+
+        func currentSpaceID() -> UInt64 {
+            UInt64(current + 1)
+        } // unique per desktop
+        func setFrame(pid: Int, windowID _: UInt32, to _: Frame) throws {
+            guard pidSpace[pid] == current else { throw Boom() } // movable only on its active desktop
             movedPids.append(pid)
         }
-        func raise(pid: Int, windowID: UInt32) throws { raisedPids.append(pid) }
+
+        func raise(pid: Int, windowID _: UInt32) throws {
+            raisedPids.append(pid)
+        }
     }
 
     private func walkingSnapshot(_ live: [Window]) -> Snapshot {
@@ -155,14 +175,15 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 2, pidSpace: [1: 0, 2: 1], start: 0)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         let report = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(report.moved.count, 2)              // both placed, on their own desktops
+        XCTAssertEqual(report.moved.count, 2) // both placed, on their own desktops
         XCTAssertTrue(report.failures.isEmpty)
         XCTAssertEqual(Set(spaces.movedPids), [1, 2])
-        XCTAssertEqual(spaces.current, 0)                  // returned to the starting desktop
+        XCTAssertEqual(spaces.current, 0) // returned to the starting desktop
     }
 
     func testWalkingRestoreFromMiddleDesktopCoversBothDirections() {
@@ -174,13 +195,14 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 3, pidSpace: [1: 0, 3: 2], start: 1)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         let report = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(report.moved.count, 2)              // both placed despite the left-edge one
+        XCTAssertEqual(report.moved.count, 2) // both placed despite the left-edge one
         XCTAssertTrue(report.failures.isEmpty)
-        XCTAssertEqual(spaces.current, 1)                  // returned to the middle (home)
+        XCTAssertEqual(spaces.current, 1) // returned to the middle (home)
     }
 
     func testWalkingRestoreCoversEmptyAdjacentDesktops() {
@@ -191,13 +213,14 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 3, pidSpace: [1: 2], start: 0)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         let report = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(report.moved.count, 1)              // reached desktop 2 past the empty one
+        XCTAssertEqual(report.moved.count, 1) // reached desktop 2 past the empty one
         XCTAssertTrue(report.failures.isEmpty)
-        XCTAssertEqual(spaces.current, 0)                  // returned home
+        XCTAssertEqual(spaces.current, 0) // returned home
     }
 
     func testWalkingRestorePlacesOnLastDesktopWhenCapReached() {
@@ -208,13 +231,14 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 2, pidSpace: [1: 1], start: 0)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 1)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 1
+        )
 
         let report = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(report.moved.count, 1)              // placed on the last reached desktop
+        XCTAssertEqual(report.moved.count, 1) // placed on the last reached desktop
         XCTAssertTrue(report.failures.isEmpty)
-        XCTAssertEqual(spaces.current, 0)                  // returned home
+        XCTAssertEqual(spaces.current, 0) // returned home
     }
 
     func testWalkingRestoreDoesNotRaiseAWindowOnAnotherDesktop() {
@@ -225,29 +249,31 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 2, pidSpace: [1: 1, 2: 0], start: 0)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         _ = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(spaces.current, 0)                  // stayed home
-        XCTAssertEqual(spaces.raisedPids, [2])             // raised the home window, not the pid-1 one
+        XCTAssertEqual(spaces.current, 0) // stayed home
+        XCTAssertEqual(spaces.raisedPids, [2]) // raised the home window, not the pid-1 one
     }
 
     func testWalkingRestoreWithNoMatchesDoesNotFlipDesktops() {
         // Saved app isn't running → nothing to place. The walk must not switch
         // desktops at all (no pointless screen flipping).
-        let live = [liveWindow(1, app: "Code", title: "a", pid: 1)]                 // live
-        let saved = [liveWindow(2, app: "Safari", title: "b", pid: 2)]              // saved (absent app)
+        let live = [liveWindow(1, app: "Code", title: "a", pid: 1)] // live
+        let saved = [liveWindow(2, app: "Safari", title: "b", pid: 2)] // saved (absent app)
         let spaces = FakeSpaces(count: 3, pidSpace: [:], start: 1)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         let report = restorer.restore(walkingSnapshot(saved))
 
         XCTAssertEqual(report.unmatched.count, 1)
         XCTAssertEqual(report.moved.count, 0)
-        XCTAssertEqual(spaces.current, 1)                  // never left the starting desktop
+        XCTAssertEqual(spaces.current, 1) // never left the starting desktop
     }
 
     func testWalkingRestoreReportsUnreachableWindow() {
@@ -257,12 +283,13 @@ final class NativeBackendTests: XCTestCase {
         let spaces = FakeSpaces(count: 3, pidSpace: [1: 0], start: 0)
         let restorer = WalkingNativeRestorer(
             enumerator: FakeEnumerator(live), controller: spaces,
-            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16)
+            switcher: spaces, probe: spaces, waitForSwitch: {}, maxSpaces: 16
+        )
 
         let report = restorer.restore(walkingSnapshot(live))
 
-        XCTAssertEqual(report.moved.count, 1)              // Code placed
-        XCTAssertEqual(report.failed.count, 1)             // Notes never reachable
-        XCTAssertEqual(spaces.current, 0)                  // ends where it started
+        XCTAssertEqual(report.moved.count, 1) // Code placed
+        XCTAssertEqual(report.failed.count, 1) // Notes never reachable
+        XCTAssertEqual(spaces.current, 0) // ends where it started
     }
 }

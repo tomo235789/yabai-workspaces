@@ -31,7 +31,7 @@ let doctor = Doctor(checks: [
     YabaiInstalledCheck(runner: runner),
     YabaiQueryableCheck(yabai: yabai),
     ActiveBackendCheck(availability: availability),
-    MacOSSettingsNoticeCheck()
+    MacOSSettingsNoticeCheck(),
 ])
 
 // Daemon: watch for display changes and auto-restore. The handler restores via
@@ -60,7 +60,7 @@ let registry = CommandRegistry(commands: [
     RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, nativeWalker: nativeWalker, availability: availability, yabai: yabai),
     ProfileCommand(capturer: profileCapturer, store: profileStore),
     DaemonCommand(monitorFactory: daemonFactory),
-    SignalCommand(installer: signalInstaller)
+    SignalCommand(installer: signalInstaller),
 ])
 
 let exitCode = registry.run(Array(CommandLine.arguments.dropFirst()))

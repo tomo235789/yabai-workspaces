@@ -101,7 +101,9 @@ public struct RestoreReport: Sendable {
 
     public var failures: [RestoreOutcome] {
         outcomes.filter {
-            if case .failed = $0.status { return true }
+            if case .failed = $0.status {
+                return true
+            }
             return $0.status == .unmatched
         }
     }
@@ -115,13 +117,19 @@ public struct RestoreReport: Sendable {
     /// Accessibility permission). Kept separate from `unmatched` so callers can
     /// tell "app not running" apart from "couldn't drive the window".
     public var failed: [RestoreOutcome] {
-        outcomes.filter { if case .failed = $0.status { return true }; return false }
+        outcomes.filter {
+            if case .failed = $0.status {
+                return true
+            }; return false
+        }
     }
 
     /// First failure reason, for a one-line diagnostic hint.
     public var firstFailureReason: String? {
         for outcome in outcomes {
-            if case let .failed(reason) = outcome.status { return reason }
+            if case let .failed(reason) = outcome.status {
+                return reason
+            }
         }
         return nil
     }

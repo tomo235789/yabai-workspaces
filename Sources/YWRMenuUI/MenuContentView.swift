@@ -113,7 +113,11 @@ public struct MenuContentView: View {
         .onAppear { Task { await model.refresh() } }
         .confirmationDialog(
             "Delete snapshot \"\(pendingDelete ?? "")\"?",
-            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            isPresented: Binding(get: { pendingDelete != nil }, set: {
+                if !$0 {
+                    pendingDelete = nil
+                }
+            }),
             titleVisibility: .visible
         ) {
             if let name = pendingDelete {

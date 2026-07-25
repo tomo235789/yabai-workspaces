@@ -24,7 +24,7 @@ func run() -> Int32 {
         ("01-empty", "Initial state", [], "", ""),
         ("02-typing", "Naming a snapshot", [], "", "home"),
         ("03-saved", "After saving, with snapshots listed", ["home", "office", "cafe"], "Saved 'home'", ""),
-        ("04-restored", "After auto-restore", ["home", "office", "cafe"], "Restored 'home': 12 moved, 0 failed", "")
+        ("04-restored", "After auto-restore", ["home", "office", "cafe"], "Restored 'home': 12 moved, 0 failed", ""),
     ]
 
     var manifest: [[String: String]] = []

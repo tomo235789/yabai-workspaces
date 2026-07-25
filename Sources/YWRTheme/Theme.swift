@@ -88,8 +88,8 @@ public enum ThemeError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .invalidHex(let hex):
-            return "The provided string '\(hex)' is not a valid 6 or 8 digit hexadecimal color."
+        case let .invalidHex(hex):
+            "The provided string '\(hex)' is not a valid 6 or 8 digit hexadecimal color."
         }
     }
 }
@@ -103,7 +103,8 @@ public enum HexColor {
 
         let length = cleaned.count
         guard length == 6 || length == 8,
-              cleaned.allSatisfy({ $0.isHexDigit }) else {
+              cleaned.allSatisfy(\.isHexDigit)
+        else {
             throw ThemeError.invalidHex(hex)
         }
 
@@ -142,7 +143,7 @@ public struct ThemeLoader: ThemeProviding {
     }
 
     public func load() -> ThemeConfig {
-        guard let url = url else {
+        guard let url else {
             return .default
         }
 

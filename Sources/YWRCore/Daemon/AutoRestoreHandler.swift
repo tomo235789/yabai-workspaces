@@ -25,7 +25,7 @@ public struct AutoRestoreHandler: DisplayChangeHandling {
         self.yabai = yabai
         self.store = store
         self.selector = selector
-        self.restoreAction = restore
+        restoreAction = restore
         self.logger = logger
     }
 
@@ -37,7 +37,7 @@ public struct AutoRestoreHandler: DisplayChangeHandling {
             let snapshots = try store.loadAll()
 
             switch selector.select(from: snapshots, currentDisplays: currentDisplays) {
-            case .confident(let scored):
+            case let .confident(scored):
                 logger.log("Auto-restoring '\(scored.snapshot.name)' (score \(scored.score))")
                 do {
                     let report = try restoreAction(scored.snapshot)
@@ -46,7 +46,7 @@ public struct AutoRestoreHandler: DisplayChangeHandling {
                     logger.log("Restore failed: \(error)")
                 }
 
-            case .ambiguous(let candidates):
+            case let .ambiguous(candidates):
                 let candidateList = candidates
                     .map { "\($0.snapshot.name)(\($0.score))" }
                     .joined(separator: ", ")

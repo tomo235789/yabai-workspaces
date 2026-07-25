@@ -115,7 +115,9 @@ public struct DoctorReport: Sendable {
     }
 
     /// Non-zero exit is warranted only when a hard check fails.
-    public var hasFailure: Bool { results.contains { $0.status == .fail } }
+    public var hasFailure: Bool {
+        results.contains { $0.status == .fail }
+    }
 }
 
 /// Runs an ordered list of checks. The list is injected, so composition (which

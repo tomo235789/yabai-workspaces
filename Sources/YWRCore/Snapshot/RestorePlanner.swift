@@ -40,7 +40,8 @@ public struct RestorePlanner: Sendable {
         let currentSpaceIndices = Set(currentSpaces.map(\.index))
         func targetSpaceIndex(forSaved savedSpaceIndex: Int) -> Int {
             if let saved = savedSpaceByIndex[savedSpaceIndex], !saved.label.isEmpty,
-               let match = currentSpaces.first(where: { $0.label == saved.label }) {
+               let match = currentSpaces.first(where: { $0.label == saved.label })
+            {
                 return match.index
             }
             return currentSpaceIndices.contains(savedSpaceIndex) ? savedSpaceIndex : (currentSpaces.first?.index ?? savedSpaceIndex)

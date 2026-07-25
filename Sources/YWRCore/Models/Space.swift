@@ -46,5 +46,7 @@ public struct Space: Codable, Equatable, Sendable {
     }
 
     /// True when this Space carries a user-assigned label (vs. index-only).
-    public var hasLabel: Bool { !label.isEmpty }
+    public var hasLabel: Bool {
+        !label.isEmpty
+    }
 }

@@ -17,7 +17,8 @@ public enum MenuRenderer {
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),
-              let png = rep.representation(using: .png, properties: [:]) else {
+              let png = rep.representation(using: .png, properties: [:])
+        else {
             return nil
         }
         return png

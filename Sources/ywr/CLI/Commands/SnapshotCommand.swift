@@ -67,7 +67,7 @@ struct SnapshotCommand: Command {
         return 0
     }
 
-    private func list(_ args: [String]) throws -> Int32 {
+    private func list(_: [String]) throws -> Int32 {
         let summaries = try store.list()
         guard !summaries.isEmpty else {
             print("No snapshots saved yet. Create one with `ywr snapshot save <name>`.")

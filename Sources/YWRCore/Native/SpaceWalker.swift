@@ -27,10 +27,10 @@ public protocol ActiveSpaceIdentifying: Sendable {
     func currentSpaceID() -> UInt64
 }
 
-// Read-only window-server calls to identify the active Space. These are private
-// but require no code injection / SIP changes (unlike the APIs that MOVE windows
-// between Spaces) — we only READ which Space is active, to know when a switch
-// crossed a desktop boundary.
+/// Read-only window-server calls to identify the active Space. These are private
+/// but require no code injection / SIP changes (unlike the APIs that MOVE windows
+/// between Spaces) — we only READ which Space is active, to know when a switch
+/// crossed a desktop boundary.
 @_silgen_name("CGSMainConnectionID")
 private func CGSMainConnectionID() -> Int32
 @_silgen_name("CGSGetActiveSpace")
@@ -40,13 +40,18 @@ private func CGSGetActiveSpace(_ connection: Int32) -> UInt64
 /// left/right a space" shortcuts enabled (default on macOS) and Accessibility
 /// permission to post events.
 public struct KeyboardSpaceSwitcher: SpaceSwitching {
-    private let rightArrow: CGKeyCode = 0x7C   // kVK_RightArrow
-    private let leftArrow: CGKeyCode = 0x7B    // kVK_LeftArrow
+    private let rightArrow: CGKeyCode = 0x7C // kVK_RightArrow
+    private let leftArrow: CGKeyCode = 0x7B // kVK_LeftArrow
 
     public init() {}
 
-    public func switchToNextSpace() { postControl(rightArrow) }
-    public func switchToPreviousSpace() { postControl(leftArrow) }
+    public func switchToNextSpace() {
+        postControl(rightArrow)
+    }
+
+    public func switchToPreviousSpace() {
+        postControl(leftArrow)
+    }
 
     private func postControl(_ key: CGKeyCode) {
         let source = CGEventSource(stateID: .combinedSessionState)
@@ -118,7 +123,7 @@ public struct WalkingNativeRestorer {
 
     /// One saved window paired with the live window it matched (still to place).
     private struct Pending {
-        let index: Int          // position in saved order (0 == frontmost)
+        let index: Int // position in saved order (0 == frontmost)
         let label: String
         let frame: Frame
         let pid: Int
@@ -178,7 +183,9 @@ public struct WalkingNativeRestorer {
         var guardCount = 0
         while guardCount < maxSpaces {
             guardCount += 1
-            if !switchAndConfirm({ switcher.switchToPreviousSpace() }) { break }   // left edge
+            if !switchAndConfirm({ switcher.switchToPreviousSpace() }) {
+                break
+            } // left edge
             homeIndex += 1
         }
 
@@ -188,8 +195,12 @@ public struct WalkingNativeRestorer {
         var index = 0
         while true {
             placeOnActiveSpace(spaceIndex: index, pending: &pending, placed: &placed, outcomes: &outcomes)
-            if pending.isEmpty || index >= maxSpaces { break }
-            if !switchAndConfirm({ switcher.switchToNextSpace() }) { break }        // right edge
+            if pending.isEmpty || index >= maxSpaces {
+                break
+            }
+            if !switchAndConfirm({ switcher.switchToNextSpace() }) {
+                break
+            } // right edge
             index += 1
         }
 
@@ -197,10 +208,18 @@ public struct WalkingNativeRestorer {
         // position on a CONFIRMED switch; if one is dropped, stop rather than
         // over-shoot and believe we're home when we aren't.
         while index > homeIndex {
-            if switchAndConfirm({ switcher.switchToPreviousSpace() }) { index -= 1 } else { break }
+            if switchAndConfirm({ switcher.switchToPreviousSpace() }) {
+                index -= 1
+            } else {
+                break
+            }
         }
         while index < homeIndex {
-            if switchAndConfirm({ switcher.switchToNextSpace() }) { index += 1 } else { break }
+            if switchAndConfirm({ switcher.switchToNextSpace() }) {
+                index += 1
+            } else {
+                break
+            }
         }
 
         // Phase D — raise the frontmost placed window, but ONLY if we actually
@@ -222,9 +241,11 @@ public struct WalkingNativeRestorer {
     private func switchAndConfirm(_ performSwitch: () -> Void) -> Bool {
         let before = probe.currentSpaceID()
         performSwitch()
-        for _ in 0..<max(1, pollAttempts) {
+        for _ in 0 ..< max(1, pollAttempts) {
             waitForSwitch()
-            if probe.currentSpaceID() != before { return true }
+            if probe.currentSpaceID() != before {
+                return true
+            }
         }
         return false
     }

@@ -24,8 +24,8 @@ final class ThemeTests: XCTestCase {
     }
 
     func testInvalidHexThrows() {
-        XCTAssertThrowsError(try HexColor.parse("#12345"))   // wrong length
-        XCTAssertThrowsError(try HexColor.parse("#GGGGGG"))  // non-hex
+        XCTAssertThrowsError(try HexColor.parse("#12345")) // wrong length
+        XCTAssertThrowsError(try HexColor.parse("#GGGGGG")) // non-hex
         XCTAssertThrowsError(try HexColor.parse(""))
     }
 
@@ -34,7 +34,8 @@ final class ThemeTests: XCTestCase {
         // Every palette color must parse.
         for hex in [theme.colors.accent, theme.colors.background, theme.colors.surface,
                     theme.colors.textPrimary, theme.colors.textSecondary,
-                    theme.colors.success, theme.colors.warning, theme.colors.error] {
+                    theme.colors.success, theme.colors.warning, theme.colors.error]
+        {
             XCTAssertNoThrow(try HexColor.parse(hex))
         }
         XCTAssertEqual(theme.font.family, "System")

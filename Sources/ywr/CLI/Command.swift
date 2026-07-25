@@ -12,7 +12,9 @@ protocol Command {
 }
 
 extension Command {
-    var usage: String { "ywr \(name)" }
+    var usage: String {
+        "ywr \(name)"
+    }
 }
 
 enum CLIError: Error, CustomStringConvertible {
@@ -21,8 +23,8 @@ enum CLIError: Error, CustomStringConvertible {
 
     var description: String {
         switch self {
-        case let .usage(text): return text
-        case let .message(text): return text
+        case let .usage(text): text
+        case let .message(text): text
         }
     }
 }

@@ -5,6 +5,7 @@ final class SpaceProvisionerTests: XCTestCase {
     private func saved(_ index: Int, _ label: String, display: Int = 1) -> SpaceSnapshot {
         SpaceSnapshot(index: index, label: label, display: display)
     }
+
     private func current(_ index: Int, _ label: String, display: Int = 1) -> Space {
         Space(id: index, index: index, label: label, display: display)
     }
@@ -31,7 +32,7 @@ final class SpaceProvisionerTests: XCTestCase {
         let reqs = SpaceProvisioner().requests(
             savedSpaces: [saved(1, "dup", display: 3), saved(2, "dup", display: 3)],
             currentSpaces: [],
-            displayMap: [:]  // no mapping → fall back to saved display index
+            displayMap: [:] // no mapping → fall back to saved display index
         )
         XCTAssertEqual(reqs, [SpaceProvisionRequest(displayIndex: 3, label: "dup")])
     }
@@ -56,8 +57,16 @@ final class SpaceRestoreTests: XCTestCase {
 
         _ = try restorer.restore(snapshot, createSpaces: true)
 
-        let created = yabai.controls.contains { if case .createSpace(let d) = $0 { return d == 1 }; return false }
-        let labeled = yabai.controls.contains { if case .label(_, let l) = $0 { return l == "web" }; return false }
+        let created = yabai.controls.contains {
+            if case let .createSpace(d) = $0 {
+                return d == 1
+            }; return false
+        }
+        let labeled = yabai.controls.contains {
+            if case let .label(_, l) = $0 {
+                return l == "web"
+            }; return false
+        }
         XCTAssertTrue(created, "expected a space to be created on display 1")
         XCTAssertTrue(labeled, "expected the new space to be labeled 'web'")
     }
@@ -78,7 +87,7 @@ final class SpaceRestoreTests: XCTestCase {
         yabai.failCreateSpaceForDisplays = [1]
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
 
-        let report = try restorer.restore(snapshot, createSpaces: true)  // must not throw
+        let report = try restorer.restore(snapshot, createSpaces: true) // must not throw
         XCTAssertEqual(report.moved.count, 1)
     }
 
@@ -119,13 +128,13 @@ final class SignalInstallerTests: XCTestCase {
     func testUninstallReturnsFailuresWithoutThrowing() {
         let runner = FakeCommandRunner { _, _ in CommandResult(exitCode: 1, stdout: "", stderr: "not found") }
         let installer = SignalInstaller(runner: runner, ywrInvocation: "ywr restore --auto")
-        let errors = installer.uninstall()  // must not throw
+        let errors = installer.uninstall() // must not throw
         XCTAssertEqual(errors.count, 3)
         let removes = runner.calls.filter { $0.arguments.contains("--remove") }
         XCTAssertEqual(removes.count, 3)
     }
 
-    func testInstallRollsBackOnMidwayFailure() {
+    func testInstallRollsBackOnMidwayFailure() throws {
         var addCount = 0
         let runner = FakeCommandRunner { _, args in
             if args.contains("--add") {
@@ -139,7 +148,7 @@ final class SignalInstallerTests: XCTestCase {
         // The first (successful) signal must be rolled back after the 2nd fails.
         let removes = runner.calls.filter { $0.arguments.contains("--remove") }
         XCTAssertEqual(removes.count, 1)
-        XCTAssertTrue(removes.first!.arguments.contains("ywr_display_added"))
+        XCTAssertTrue(try XCTUnwrap(removes.first?.arguments.contains("ywr_display_added")))
     }
 
     func testInstalledLabels() {

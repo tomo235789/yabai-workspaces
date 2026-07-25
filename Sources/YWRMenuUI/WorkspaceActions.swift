@@ -26,10 +26,22 @@ public struct StubActions: WorkspaceActions {
         self.restoreResult = restoreResult
     }
 
-    public func snapshotNames() async -> [String] { names }
-    public func save(name: String) async throws {}
-    public func restore(name: String) async throws -> String { restoreResult }
-    public func restoreAcrossDesktops(name: String) async throws -> String { restoreResult }
-    public func restoreAuto() async throws -> String { restoreResult }
-    public func delete(name: String) async throws {}
+    public func snapshotNames() async -> [String] {
+        names
+    }
+
+    public func save(name _: String) async throws {}
+    public func restore(name _: String) async throws -> String {
+        restoreResult
+    }
+
+    public func restoreAcrossDesktops(name _: String) async throws -> String {
+        restoreResult
+    }
+
+    public func restoreAuto() async throws -> String {
+        restoreResult
+    }
+
+    public func delete(name _: String) async throws {}
 }

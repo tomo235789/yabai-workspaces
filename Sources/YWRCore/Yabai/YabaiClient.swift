@@ -49,7 +49,7 @@ public struct YabaiClient: YabaiQuerying, YabaiControlling {
         try decode([Window].self, from: ["-m", "query", "--windows"])
     }
 
-    private func decode<T: Decodable>(_ type: T.Type, from args: [String]) throws -> T {
+    private func decode<T: Decodable>(_: T.Type, from args: [String]) throws -> T {
         let json = try runner.output(executable, args)
         guard let data = json.data(using: .utf8) else {
             throw YabaiError.invalidOutput(command: args.joined(separator: " "))
@@ -138,9 +138,9 @@ public enum YabaiError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case let .invalidOutput(command):
-            return "yabai `\(command)` returned non-UTF8 output"
+            "yabai `\(command)` returned non-UTF8 output"
         case let .decodeFailed(command, underlying):
-            return "could not decode yabai `\(command)` output: \(underlying)"
+            "could not decode yabai `\(command)` output: \(underlying)"
         }
     }
 }

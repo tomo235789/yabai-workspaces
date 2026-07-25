@@ -37,7 +37,7 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case let .notFound(name):
-            return "snapshot '\(name)' not found"
+            "snapshot '\(name)' not found"
         }
     }
 }

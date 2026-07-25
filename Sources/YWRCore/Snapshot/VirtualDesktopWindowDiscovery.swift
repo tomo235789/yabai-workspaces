@@ -27,10 +27,10 @@ public struct YabaiVirtualDesktopWindowDiscovery: VirtualDesktopWindowDiscoverin
         self.activationWaitSeconds = activationWaitSeconds
     }
 
-    // Implemented via ollama qwen3-coder-next, reviewed and integrated.
-    // Visits every Space (including native-fullscreen ones, so their windows are
-    // observed) and is best-effort per Space so one un-focusable Space doesn't
-    // abort discovery. Seeds with the currently-visible windows first.
+    /// Implemented via ollama qwen3-coder-next, reviewed and integrated.
+    /// Visits every Space (including native-fullscreen ones, so their windows are
+    /// observed) and is best-effort per Space so one un-focusable Space doesn't
+    /// abort discovery. Seeds with the currently-visible windows first.
     public func discover() throws -> [Window] {
         let allSpaces = try yabai.querySpaces()
         let originalSpace = allSpaces.first(where: { $0.hasFocus })?.index
@@ -46,7 +46,9 @@ public struct YabaiVirtualDesktopWindowDiscovery: VirtualDesktopWindowDiscoverin
         // Seed with currently visible windows (best-effort).
         if let seeded = try? yabai.queryWindows() {
             anyQuerySucceeded = true
-            for window in seeded { windowsByID[window.id] = window }
+            for window in seeded {
+                windowsByID[window.id] = window
+            }
         }
 
         defer {

@@ -23,17 +23,17 @@ actor CoreWorkspaceActions: WorkspaceActions {
         let runner = ProcessCommandRunner()
         let paths = Paths()
         let client = YabaiClient(runner: runner)
-        self.yabai = client
-        self.store = FileSnapshotStore(paths: paths)
-        self.capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
-        self.restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
-        self.autoSelector = AutoSelector()
-        self.availability = YabaiAvailability(runner: runner)
+        yabai = client
+        store = FileSnapshotStore(paths: paths)
+        capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
+        restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
+        autoSelector = AutoSelector()
+        availability = YabaiAvailability(runner: runner)
         let nativeEnumerator = CGWindowEnumerator()
         let nativeController = AXWindowController()
-        self.nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
-        self.nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
-        self.nativeWalker = WalkingNativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
+        nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
+        nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
+        nativeWalker = WalkingNativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
         self.logger = logger
     }
 
@@ -56,11 +56,10 @@ actor CoreWorkspaceActions: WorkspaceActions {
     func save(name: String) async throws {
         // Fall back to the yabai-independent backend when yabai isn't running,
         // mirroring the CLI so the menu-bar app works in yabai-less setups too.
-        let snapshot: Snapshot
-        if availability.isAvailable() {
-            snapshot = try capturer.capture(name: name, at: Date())
+        let snapshot: Snapshot = if availability.isAvailable() {
+            try capturer.capture(name: name, at: Date())
         } else {
-            snapshot = nativeCapturer.capture(name: name, at: Date())
+            nativeCapturer.capture(name: name, at: Date())
         }
         try store.save(snapshot)
     }
@@ -70,7 +69,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
         // A native snapshot must be restored by the native backend even if yabai
         // is now available — the yabai planner can't handle its zeroed geometry.
         let isNative = snapshot.displayProfile.fingerprint == NativeCapturer.nativeFingerprint
-        if availability.isAvailable() && !isNative {
+        if availability.isAvailable(), !isNative {
             let report = try restorer.restore(snapshot)
             let po = report.positionsOnly.count
             let poNote = po > 0 ? " (\(po) positions-only)" : ""
@@ -94,15 +93,19 @@ actor CoreWorkspaceActions: WorkspaceActions {
     /// the first failure reason; adds an Accessibility-permission hint ONLY when
     /// the failures look like an authorization problem (AX couldn't read any of
     /// an app's windows) — not for unrelated failures like a window that closed.
-    nonisolated private func nativeStatus(name: String, report: RestoreReport) -> String {
+    private nonisolated func nativeStatus(name: String, report: RestoreReport) -> String {
         let moved = report.moved.count
         let failed = report.failed.count
         let unmatched = report.unmatched.count
         var parts = ["\(moved) repositioned"]
-        if failed > 0 { parts.append("\(failed) failed") }
-        if unmatched > 0 { parts.append("\(unmatched) not running") }
+        if failed > 0 {
+            parts.append("\(failed) failed")
+        }
+        if unmatched > 0 {
+            parts.append("\(unmatched) not running")
+        }
         var msg = "Restored '\(name)' (native): " + parts.joined(separator: ", ")
-        if moved == 0 && failed > 0 {
+        if moved == 0, failed > 0 {
             if let reason = report.firstFailureReason, Self.looksLikeMissingAccessibility(reason) {
                 msg += ". Grant Accessibility permission to 'yabai workspaces' in System Settings."
             } else if let reason = report.firstFailureReason {
@@ -114,7 +117,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
 
     /// AX reports "no accessible windows" when it can't read an app's window
     /// list at all — the classic symptom of a missing/stale Accessibility grant.
-    nonisolated private static func looksLikeMissingAccessibility(_ reason: String) -> Bool {
+    private nonisolated static func looksLikeMissingAccessibility(_ reason: String) -> Bool {
         reason.contains("no accessible windows")
     }
 

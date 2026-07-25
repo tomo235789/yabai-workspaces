@@ -15,14 +15,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         requestPermissions()
 
         let theme = Theme(ThemeLoader(url: CoreWorkspaceActions.themeConfigURL()).load())
         let viewModel = MenuViewModel(actions: CoreWorkspaceActions())
 
         let hosting = NSHostingController(rootView: MenuContentView(model: viewModel, theme: theme))
-        hosting.sizingOptions = [.preferredContentSize]   // size the popover to fit the whole UI (incl. Quit)
+        hosting.sizingOptions = [.preferredContentSize] // size the popover to fit the whole UI (incl. Quit)
 
         let popover = NSPopover()
         popover.behavior = .transient
@@ -35,13 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 image.isTemplate = true
                 button.image = image
             } else {
-                button.title = "ywr"   // fallback so the item is never zero-width
+                button.title = "ywr" // fallback so the item is never zero-width
             }
             button.action = #selector(handleClick)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        self.statusItem = item
+        statusItem = item
     }
 
     /// Actively request the permissions the native backend needs, so the app

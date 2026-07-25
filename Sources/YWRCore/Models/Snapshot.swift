@@ -55,7 +55,7 @@ public struct WindowSnapshot: Codable, Equatable, Sendable {
         self.focused = focused
     }
 
-    // `focused` is new; decode it as false when reading older snapshots.
+    /// `focused` is new; decode it as false when reading older snapshots.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         app = try c.decode(String.self, forKey: .app)

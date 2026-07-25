@@ -7,22 +7,26 @@ public struct Paths: Sendable {
 
     /// Honors `XDG_CONFIG_HOME`, falling back to `~/.config`.
     public init(environment: [String: String] = ProcessInfo.processInfo.environment) {
-        let base: URL
-        if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
-            base = URL(fileURLWithPath: xdg, isDirectory: true)
+        let base: URL = if let xdg = environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
+            URL(fileURLWithPath: xdg, isDirectory: true)
         } else {
-            base = FileManager.default.homeDirectoryForCurrentUser
+            FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".config", isDirectory: true)
         }
-        self.root = base.appendingPathComponent("yabai-workspaces", isDirectory: true)
+        root = base.appendingPathComponent("yabai-workspaces", isDirectory: true)
     }
 
     public init(root: URL) {
         self.root = root
     }
 
-    public var snapshotsDir: URL { root.appendingPathComponent("snapshots", isDirectory: true) }
-    public var profilesDir: URL { root.appendingPathComponent("profiles", isDirectory: true) }
+    public var snapshotsDir: URL {
+        root.appendingPathComponent("snapshots", isDirectory: true)
+    }
+
+    public var profilesDir: URL {
+        root.appendingPathComponent("profiles", isDirectory: true)
+    }
 
     public func snapshotFile(name: String) -> URL {
         snapshotsDir.appendingPathComponent("\(name).json")
@@ -38,7 +42,7 @@ public struct Paths: Sendable {
     public static func isValidName(_ name: String) -> Bool {
         guard !name.isEmpty, name.utf8.count <= 200 else { return false }
         guard !name.contains("/"), !name.contains("\\"), !name.contains("\0") else { return false }
-        guard !name.hasPrefix(".") else { return false }   // rules out "." and ".."
+        guard !name.hasPrefix(".") else { return false } // rules out "." and ".."
         return true
     }
 }
@@ -51,7 +55,9 @@ public enum NameError: Error, CustomStringConvertible {
     }
 
     private var name: String {
-        if case let .invalid(n) = self { return n }
+        if case let .invalid(n) = self {
+            return n
+        }
         return ""
     }
 }

@@ -51,7 +51,7 @@ final class RestoreTests: XCTestCase {
         let live = Window(id: 7, pid: 1, app: "Code", title: "", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
         let snapshot = makeSnapshot([
             savedWindow(app: "Code", title: "proj", floating: false, x: 0, w: 500),
-            savedWindow(app: "Code", title: "other", floating: false, x: 500, w: 500)
+            savedWindow(app: "Code", title: "other", floating: false, x: 500, w: 500),
         ])
         let plan = planner.plan(snapshot: snapshot, currentDisplays: [display], currentSpaces: [], currentWindows: [live])
         XCTAssertEqual(plan.unmatched.count, 1)
@@ -68,7 +68,7 @@ final class RestoreTests: XCTestCase {
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
         let snapshot = makeSnapshot([
             savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500),
-            savedWindow(app: "Term", title: "shell", floating: true, x: 500, w: 500)
+            savedWindow(app: "Term", title: "shell", floating: true, x: 500, w: 500),
         ])
 
         let report = try restorer.restore(snapshot)
@@ -84,9 +84,21 @@ final class RestoreTests: XCTestCase {
 
         let report = try restorer.restore(snapshot, positionsOnly: true)
 
-        let hasDisplay = yabai.controls.contains { if case .display = $0 { return true }; return false }
-        let hasSpace = yabai.controls.contains { if case .space = $0 { return true }; return false }
-        let hasMove = yabai.controls.contains { if case .move = $0 { return true }; return false }
+        let hasDisplay = yabai.controls.contains {
+            if case .display = $0 {
+                return true
+            }; return false
+        }
+        let hasSpace = yabai.controls.contains {
+            if case .space = $0 {
+                return true
+            }; return false
+        }
+        let hasMove = yabai.controls.contains {
+            if case .move = $0 {
+                return true
+            }; return false
+        }
         XCTAssertFalse(hasDisplay, "positions-only must not move across displays")
         XCTAssertFalse(hasSpace, "positions-only must not move across spaces")
         XCTAssertTrue(hasMove, "positions-only still restores geometry")
@@ -104,16 +116,20 @@ final class RestoreTests: XCTestCase {
                           display: 1, space: 1, isFloating: true, isMinimized: true, isNativeFullscreen: true)
         let yabai = FakeYabai(displays: [display], spaces: [], windows: [live])
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
-        let saved = savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)  // flags all false
+        let saved = savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500) // flags all false
 
         _ = try restorer.restore(makeSnapshot([saved]), positionsOnly: true)
 
         XCTAssertFalse(yabai.controls.contains {
-            if case .fullscreen = $0 { return true }
+            if case .fullscreen = $0 {
+                return true
+            }
             return false
         }, "positions-only must not leave or enter a native fullscreen Space")
         XCTAssertFalse(yabai.controls.contains {
-            if case .minimize = $0 { return true }
+            if case .minimize = $0 {
+                return true
+            }
             return false
         }, "positions-only must not minimize or deminimize a window")
     }
@@ -124,15 +140,19 @@ final class RestoreTests: XCTestCase {
         // fail, and still get its geometry.
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj", frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1, isFloating: true)
         let yabai = FakeYabai(displays: [display], spaces: [Space(id: 1, index: 1, label: "code", display: 1)], windows: [live])
-        yabai.failMoveForWindowIds = [42]   // toDisplay (and toSpace) throw
+        yabai.failMoveForWindowIds = [42] // toDisplay (and toSpace) throw
         let restorer = SnapshotRestorer(yabai: yabai, launcher: FakeLauncher(), waiter: ImmediateWaiter())
         let snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)])
 
-        let report = try restorer.restore(snapshot)   // default mode (auto-fallback)
+        let report = try restorer.restore(snapshot) // default mode (auto-fallback)
 
         XCTAssertEqual(report.positionsOnly.count, 1, "move failure should degrade, not fail")
         XCTAssertTrue(report.failures.isEmpty)
-        XCTAssertTrue(yabai.controls.contains { if case .move = $0 { return true }; return false })
+        XCTAssertTrue(yabai.controls.contains {
+            if case .move = $0 {
+                return true
+            }; return false
+        })
     }
 
     func testPositionsOnlyResolvesGeometryAgainstCurrentDisplay() throws {
@@ -159,7 +179,9 @@ final class RestoreTests: XCTestCase {
 
         // relative (0,0,0.5,0.5) on display 2 (x:1000,w:2000) → x=1000, w=1000.
         let move = yabai.controls.compactMap { c -> (Double, Double)? in
-            if case let .move(_, x, y) = c { return (x, y) }; return nil
+            if case let .move(_, x, y) = c {
+                return (x, y)
+            }; return nil
         }.first
         XCTAssertEqual(move?.0, 1000, "geometry resolved against current display 2, not target display 1")
     }
@@ -174,7 +196,7 @@ final class RestoreTests: XCTestCase {
         focusedSaved.focused = true
         let snapshot = makeSnapshot([
             savedWindow(app: "Code", title: "a", floating: false, x: 0, w: 500),
-            focusedSaved
+            focusedSaved,
         ])
 
         _ = try restorer.restore(snapshot)
@@ -208,7 +230,11 @@ final class RestoreTests: XCTestCase {
         XCTAssertTrue(yabai.controls.contains(.minimize(id: 1, on: true)))
         XCTAssertTrue(yabai.controls.contains(.fullscreen(id: 2, on: true)))
         // A fullscreen window must NOT get move/resize even though it's floating.
-        XCTAssertFalse(yabai.controls.contains { if case .move(let id, _, _) = $0 { return id == 2 }; return false })
+        XCTAssertFalse(yabai.controls.contains {
+            if case let .move(id, _, _) = $0 {
+                return id == 2
+            }; return false
+        })
     }
 
     func testBlockingStatesAreClearedBeforeMoving() throws {
@@ -221,14 +247,18 @@ final class RestoreTests: XCTestCase {
 
         _ = try restorer.restore(snapshot)
 
-        let firstMove = yabai.controls.firstIndex { if case .display = $0 { return true }; return false }
+        let firstMove = yabai.controls.firstIndex {
+            if case .display = $0 {
+                return true
+            }; return false
+        }
         let clearMin = yabai.controls.firstIndex(of: .minimize(id: 1, on: false))
         let clearFs = yabai.controls.firstIndex(of: .fullscreen(id: 1, on: false))
         XCTAssertNotNil(firstMove)
         XCTAssertNotNil(clearMin)
         XCTAssertNotNil(clearFs)
-        XCTAssertLessThan(clearMin!, firstMove!, "minimize must be cleared before moving")
-        XCTAssertLessThan(clearFs!, firstMove!, "fullscreen must be cleared before moving")
+        XCTAssertLessThan(try XCTUnwrap(clearMin), try XCTUnwrap(firstMove), "minimize must be cleared before moving")
+        XCTAssertLessThan(try XCTUnwrap(clearFs), try XCTUnwrap(firstMove), "fullscreen must be cleared before moving")
     }
 
     func testFloatingWindowGetsMoveAndResize() throws {
@@ -238,8 +268,16 @@ final class RestoreTests: XCTestCase {
         let snapshot = makeSnapshot([savedWindow(app: "Code", title: "proj", floating: true, x: 0, w: 500)])
 
         _ = try restorer.restore(snapshot)
-        let didMove = yabai.controls.contains { if case .move = $0 { return true }; return false }
-        let didResize = yabai.controls.contains { if case .resize = $0 { return true }; return false }
+        let didMove = yabai.controls.contains {
+            if case .move = $0 {
+                return true
+            }; return false
+        }
+        let didResize = yabai.controls.contains {
+            if case .resize = $0 {
+                return true
+            }; return false
+        }
         XCTAssertTrue(didMove)
         XCTAssertTrue(didResize)
     }
@@ -247,7 +285,7 @@ final class RestoreTests: XCTestCase {
     func testUnifiedDiscoveryVisitsDesktopsAndRestoresFocus() throws {
         let spaces = [
             Space(id: 1, index: 1, label: "code", display: 1, hasFocus: true),
-            Space(id: 2, index: 2, label: "web", display: 1)
+            Space(id: 2, index: 2, label: "web", display: 1),
         ]
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
                           frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)
@@ -256,7 +294,9 @@ final class RestoreTests: XCTestCase {
 
         XCTAssertEqual(try discovery.discover().map(\.id), [42])
         let focusedSpaces = yabai.controls.compactMap { control -> Int? in
-            if case let .focusSpace(index) = control { return index }
+            if case let .focusSpace(index) = control {
+                return index
+            }
             return nil
         }
         XCTAssertEqual(focusedSpaces, [1, 2, 1])
@@ -269,25 +309,39 @@ final class RestoreTests: XCTestCase {
             var spacesList: [Space]
             let windowsBySpace: [Int: [Window]]
             init(spaces: [Space], windowsBySpace: [Int: [Window]]) {
-                self.spacesList = spaces; self.windowsBySpace = windowsBySpace
+                spacesList = spaces; self.windowsBySpace = windowsBySpace
             }
-            private var focused: Int { spacesList.first(where: { $0.hasFocus })?.index ?? spacesList.first?.index ?? 0 }
-            func queryDisplays() throws -> [Display] { [] }
-            func querySpaces() throws -> [Space] { spacesList }
-            func queryWindows() throws -> [Window] { windowsBySpace[focused] ?? [] }
+
+            private var focused: Int {
+                spacesList.first(where: { $0.hasFocus })?.index ?? spacesList.first?.index ?? 0
+            }
+
+            func queryDisplays() throws -> [Display] {
+                []
+            }
+
+            func querySpaces() throws -> [Space] {
+                spacesList
+            }
+
+            func queryWindows() throws -> [Window] {
+                windowsBySpace[focused] ?? []
+            }
+
             func focusSpace(index: Int) throws {
                 spacesList = spacesList.map { var s = $0; s.hasFocus = (s.index == index); return s }
             }
-            func moveWindow(_ id: Int, toSpace: Int) throws {}
-            func moveWindow(_ id: Int, toDisplay: Int) throws {}
-            func setFloating(_ id: Int, _ f: Bool) throws {}
-            func moveWindow(_ id: Int, toX: Double, y: Double) throws {}
-            func resizeWindow(_ id: Int, toW: Double, h: Double) throws {}
-            func focusWindow(_ id: Int) throws {}
-            func labelSpace(index: Int, label: String) throws {}
-            func createSpace(onDisplay: Int) throws {}
-            func setMinimized(_ id: Int, _ m: Bool) throws {}
-            func setFullscreen(_ id: Int, _ fs: Bool) throws {}
+
+            func moveWindow(_: Int, toSpace _: Int) throws {}
+            func moveWindow(_: Int, toDisplay _: Int) throws {}
+            func setFloating(_: Int, _: Bool) throws {}
+            func moveWindow(_: Int, toX _: Double, y _: Double) throws {}
+            func resizeWindow(_: Int, toW _: Double, h _: Double) throws {}
+            func focusWindow(_: Int) throws {}
+            func labelSpace(index _: Int, label _: String) throws {}
+            func createSpace(onDisplay _: Int) throws {}
+            func setMinimized(_: Int, _: Bool) throws {}
+            func setFullscreen(_: Int, _: Bool) throws {}
         }
         func win(_ id: Int, space: Int) -> Window {
             Window(id: id, pid: id, app: "A\(id)", title: "t", frame: Frame(x: 0, y: 0, w: 10, h: 10), display: 1, space: space)
@@ -295,12 +349,12 @@ final class RestoreTests: XCTestCase {
         let spaces = [
             Space(id: 1, index: 1, label: "", display: 1, hasFocus: true),
             Space(id: 2, index: 2, label: "", display: 1),
-            Space(id: 3, index: 3, label: "", display: 1, isNativeFullscreen: true)
+            Space(id: 3, index: 3, label: "", display: 1, isNativeFullscreen: true),
         ]
         let yabai = PerSpaceYabai(spaces: spaces, windowsBySpace: [1: [win(10, space: 1)], 2: [win(20, space: 2)], 3: [win(30, space: 3)]])
         let discovery = YabaiVirtualDesktopWindowDiscovery(yabai: yabai, waiter: ImmediateWaiter())
 
-        let ids = Set(try discovery.discover().map(\.id))
+        let ids = try Set(discovery.discover().map(\.id))
         XCTAssertEqual(ids, [10, 20, 30], "must collect windows from every space, including the fullscreen one")
         XCTAssertTrue(yabai.spacesList.first(where: { $0.hasFocus })?.index == 1, "must return focus to the original space")
     }
@@ -310,23 +364,30 @@ final class RestoreTests: XCTestCase {
         // (not return an empty "success") so the restorer's fallback can run.
         final class FailingWindowsYabai: YabaiQuerying & YabaiControlling, @unchecked Sendable {
             struct Boom: Error {}
-            func queryDisplays() throws -> [Display] { [] }
+            func queryDisplays() throws -> [Display] {
+                []
+            }
+
             func querySpaces() throws -> [Space] {
                 [Space(id: 1, index: 1, label: "", display: 1, hasFocus: true),
                  Space(id: 2, index: 2, label: "", display: 1)]
             }
-            func queryWindows() throws -> [Window] { throw Boom() }
-            func focusSpace(index: Int) throws {}
-            func moveWindow(_ id: Int, toSpace: Int) throws {}
-            func moveWindow(_ id: Int, toDisplay: Int) throws {}
-            func setFloating(_ id: Int, _ f: Bool) throws {}
-            func moveWindow(_ id: Int, toX: Double, y: Double) throws {}
-            func resizeWindow(_ id: Int, toW: Double, h: Double) throws {}
-            func focusWindow(_ id: Int) throws {}
-            func labelSpace(index: Int, label: String) throws {}
-            func createSpace(onDisplay: Int) throws {}
-            func setMinimized(_ id: Int, _ m: Bool) throws {}
-            func setFullscreen(_ id: Int, _ fs: Bool) throws {}
+
+            func queryWindows() throws -> [Window] {
+                throw Boom()
+            }
+
+            func focusSpace(index _: Int) throws {}
+            func moveWindow(_: Int, toSpace _: Int) throws {}
+            func moveWindow(_: Int, toDisplay _: Int) throws {}
+            func setFloating(_: Int, _: Bool) throws {}
+            func moveWindow(_: Int, toX _: Double, y _: Double) throws {}
+            func resizeWindow(_: Int, toW _: Double, h _: Double) throws {}
+            func focusWindow(_: Int) throws {}
+            func labelSpace(index _: Int, label _: String) throws {}
+            func createSpace(onDisplay _: Int) throws {}
+            func setMinimized(_: Int, _: Bool) throws {}
+            func setFullscreen(_: Int, _: Bool) throws {}
         }
         let discovery = YabaiVirtualDesktopWindowDiscovery(yabai: FailingWindowsYabai(), waiter: ImmediateWaiter())
         XCTAssertThrowsError(try discovery.discover())
@@ -336,8 +397,13 @@ final class RestoreTests: XCTestCase {
         final class Discovery: VirtualDesktopWindowDiscovering, @unchecked Sendable {
             var called = false
             let windows: [Window]
-            init(_ windows: [Window]) { self.windows = windows }
-            func discover() throws -> [Window] { called = true; return windows }
+            init(_ windows: [Window]) {
+                self.windows = windows
+            }
+
+            func discover() throws -> [Window] {
+                called = true; return windows
+            }
         }
         let live = Window(id: 42, pid: 1, app: "Code", title: "proj",
                           frame: Frame(x: 0, y: 0, w: 500, h: 500), display: 1, space: 1)

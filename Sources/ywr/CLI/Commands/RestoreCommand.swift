@@ -4,7 +4,9 @@ import YWRCore
 struct RestoreCommand: Command {
     let name = "restore"
     let summary = "Restore a saved layout (use --dry-run to preview, --auto to pick)"
-    var usage: String { "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native] [--walk-spaces]" }
+    var usage: String {
+        "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native] [--walk-spaces]"
+    }
 
     private let store: SnapshotStore
     private let restorer: SnapshotRestorer
@@ -69,7 +71,9 @@ struct RestoreCommand: Command {
         let walkSpaces = args.contains("--walk-spaces")
         let snapshotIsNative = snapshot.displayProfile.fingerprint == NativeCapturer.nativeFingerprint
         if nativeFlag || yabaiDown || snapshotIsNative || walkSpaces {
-            if createSpaces { throw CLIError.message("--create-spaces requires the yabai backend.") }
+            if createSpaces {
+                throw CLIError.message("--create-spaces requires the yabai backend.")
+            }
             return nativeRestore(snapshot, dryRun: dryRun, walkSpaces: walkSpaces)
         }
 
@@ -97,7 +101,8 @@ struct RestoreCommand: Command {
         // windows"), that's the classic missing-Accessibility symptom — call it
         // out. Other failures print their own reason in the list below.
         if report.moved.isEmpty,
-           let reason = report.firstFailureReason, reason.contains("no accessible windows") {
+           let reason = report.firstFailureReason, reason.contains("no accessible windows")
+        {
             print("\nNothing moved: AX couldn't read any window — Accessibility permission is missing.")
             print("Grant it to the program running `ywr` (Terminal, etc.) in")
             print("System Settings ▸ Privacy & Security ▸ Accessibility, then retry.")
@@ -150,24 +155,30 @@ struct RestoreCommand: Command {
         if positionsOnly {
             print("Positions-only: Display/Space moves will be skipped; only window geometry is restored.\n")
         }
-        if createSpaces && !positionsOnly {
+        if createSpaces, !positionsOnly {
             let requests = try restorer.provisionRequests(for: snapshot)
             if requests.isEmpty {
                 print("Spaces to create: none\n")
             } else {
                 print("Spaces to create:")
-                for r in requests { print("  • display \(r.displayIndex) → label \"\(r.label)\"") }
+                for r in requests {
+                    print("  • display \(r.displayIndex) → label \"\(r.label)\"")
+                }
                 print("")
             }
         }
         if !plan.appsToLaunch.isEmpty {
             print("Apps to launch:")
-            for app in plan.appsToLaunch { print("  • \(app)") }
+            for app in plan.appsToLaunch {
+                print("  • \(app)")
+            }
             print("")
         }
         if !plan.spaceLabels.isEmpty {
             print("Space labels to apply:")
-            for label in plan.spaceLabels { print("  • space \(label.spaceIndex) → \"\(label.label)\"") }
+            for label in plan.spaceLabels {
+                print("  • space \(label.spaceIndex) → \"\(label.label)\"")
+            }
             print("")
         }
         print("Window moves:")
@@ -195,9 +206,9 @@ struct RestoreCommand: Command {
         let poNote = poCount > 0 ? " (\(poCount) positions-only)" : ""
         print("Restored '\(snapshot.name)': \(report.moved.count) window(s) moved\(poNote).")
 
-        if !positionsOnly && poCount > 0 {
+        if !positionsOnly, poCount > 0 {
             print("Note: \(poCount) window(s) kept their current Space — Display/Space move was unavailable " +
-                  "(enable 'Displays have separate Spaces' + the yabai scripting addition for full restore).")
+                "(enable 'Displays have separate Spaces' + the yabai scripting addition for full restore).")
         }
         if report.failures.isEmpty {
             return 0

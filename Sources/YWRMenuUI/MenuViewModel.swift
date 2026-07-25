@@ -30,7 +30,7 @@ public final class MenuViewModel: ObservableObject {
     }
 
     public func save() async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             status = "Enter a name"
@@ -49,7 +49,7 @@ public final class MenuViewModel: ObservableObject {
     }
 
     public func restore(name: String) async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         isBusy = true
         defer { isBusy = false }
         do {
@@ -62,7 +62,7 @@ public final class MenuViewModel: ObservableObject {
     /// Restore across every desktop (walks Spaces). Heavier than `restore`, so
     /// it's a separate action the user opts into.
     public func restoreAcrossDesktops(name: String) async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         isBusy = true
         defer { isBusy = false }
         do {
@@ -73,7 +73,7 @@ public final class MenuViewModel: ObservableObject {
     }
 
     public func restoreAuto() async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         isBusy = true
         defer { isBusy = false }
         do {
@@ -86,7 +86,7 @@ public final class MenuViewModel: ObservableObject {
     /// Re-save the current layout into an existing snapshot name — the one-click
     /// "overwrite" path so you don't have to retype the name into the field.
     public func overwrite(name: String) async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         isBusy = true
         defer { isBusy = false }
         do {
@@ -99,7 +99,7 @@ public final class MenuViewModel: ObservableObject {
     }
 
     public func delete(name: String) async {
-        guard !isBusy else { return }   // ignore re-entrant taps while working
+        guard !isBusy else { return } // ignore re-entrant taps while working
         isBusy = true
         defer { isBusy = false }
         do {
