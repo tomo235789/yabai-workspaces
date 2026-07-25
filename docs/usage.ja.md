@@ -175,6 +175,31 @@ ywr restore home --create-spaces
 ywr restore home --create-spaces --dry-run   # 作成予定の Space も表示
 ```
 
+### ネイティブバックエンド（yabai なしで動かす）
+
+yabai は「ディスプレイごとに個別の操作スペース」が **OFF** だと起動しません。その
+ような構成でも、ywr は **yabai を使わない native バックエンド**（macOS の
+Accessibility / CoreGraphics）で**ウィンドウの位置・サイズ**を保存・復元できます。
+
+- **自動切替**：`ywr doctor` が yabai 未応答を検出すると、`snapshot save` / `restore`
+  は自動的に native バックエンドを使います（`active backend` 行で状態表示）。
+- **明示指定**：`--native` を付けると常に native を使います。
+
+```sh
+ywr snapshot save home --native   # yabai を使わず現在の配置を保存
+ywr restore home --native         # 位置・サイズを復元（ディスプレイ跨ぎも対応）
+```
+
+native バックエンドでできること・制約:
+
+- ✅ ウィンドウの**位置・サイズ**を復元（**別ディスプレイへの移動**も含む）
+- ✅ 保存時に**最前面**だったウィンドウを前面に戻す
+- ✅ 通常の GUI アプリのみ対象（システム/ヘルパーは自動除外）、Electron/Chromium も対応
+- ❌ **Space（仮想デスクトップ）への割り当ては不可**（公開 API の制約による geometry-only）
+- ❌ `--auto` / `--create-spaces` は yabai 専用（native では使えません）
+- ⚠️ **Accessibility 権限**が必須。加えて**画面収録**権限を付与すると、アプリ再起動を
+  またぐ際の同名ウィンドウの識別精度が上がります。
+
 ---
 
 ## 7. メニューバーアプリ
@@ -234,6 +259,7 @@ swift run ywr-menubar
 | `ywr restore --auto` | 現構成に一致する snapshot を自動選択して復元 |
 | `ywr restore <name> --create-spaces` | 不足 Space を作成してから復元 |
 | `ywr restore <name> --positions-only` | Space/Display 移動なし、位置・サイズのみ復元 |
+| `ywr snapshot save <name> --native` / `ywr restore <name> --native` | yabai を使わず位置・サイズを保存/復元 |
 | `ywr profile capture <name>` | ディスプレイ構成を記録 |
 | `ywr profile list` | プロファイル一覧 |
 | `ywr daemon [--interval <秒>]` | ポーリングで自動復元 |

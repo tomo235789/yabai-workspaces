@@ -134,6 +134,32 @@ ywr restore home --create-spaces
 ywr restore home --create-spaces --dry-run
 ```
 
+### Native backend (works without yabai)
+
+yabai refuses to start when "Displays have separate Spaces" is off. For those
+setups, ywr can save/restore window **position and size** through a
+yabai-independent **native backend** (macOS Accessibility / CoreGraphics).
+
+- **Automatic**: when `ywr doctor` finds yabai isn't answering, `snapshot save`
+  and `restore` use the native backend automatically (shown in the
+  `active backend` line).
+- **Explicit**: pass `--native` to always use it.
+
+```sh
+ywr snapshot save home --native   # capture without yabai
+ywr restore home --native         # restore geometry (moves across displays too)
+```
+
+What it does / limits:
+
+- ✅ Restores window **position and size**, including **moving across displays**.
+- ✅ Brings the window that was **frontmost** at capture time back to the front.
+- ✅ Regular GUI apps only (system/helper windows are dropped); Electron/Chromium supported.
+- ❌ **No Space assignment** — geometry-only, a limit of the public APIs.
+- ❌ `--auto` / `--create-spaces` require yabai and are rejected in native mode.
+- ⚠️ Needs **Accessibility** permission. Granting **Screen Recording** too improves
+  matching same-title windows across app restarts.
+
 ---
 
 ## 7. Menu-bar app
@@ -184,6 +210,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr restore --auto` | Auto-pick the matching snapshot |
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |
 | `ywr restore <name> --positions-only` | Geometry only; no Space/display moves |
+| `ywr snapshot save <name> --native` / `ywr restore <name> --native` | Save/restore geometry without yabai |
 | `ywr profile capture <name>` / `list` | Record / list display profiles |
 | `ywr daemon [--interval <s>]` | Auto-restore by polling |
 | `ywr signal` <install\|uninstall\|list> | Auto-restore via yabai signals |

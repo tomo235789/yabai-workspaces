@@ -11,9 +11,12 @@ macOS のウィンドウ配置（ディスプレイ構成・Spaces・ウィン�
 
 実装済み:
 
-- **CLI (`ywr`)**: `doctor`、`snapshot save/list`、`restore`（`--dry-run` と
-  `--auto` に対応）、`profile capture/list`、`daemon`（ディスプレイ変更を検知して
-  自動復元）。
+- **CLI (`ywr`)**: `doctor`、`snapshot save/list`、`restore`（`--dry-run`・
+  `--auto`・`--positions-only`・`--native`）、`profile capture/list`、`daemon`
+  （ディスプレイ変更を検知して自動復元）、`signal`（yabai シグナル）。
+- **ネイティブバックエンド**: yabai が動かない構成（「ディスプレイごとに個別の操作
+  スペース」OFF）でも、macOS の Accessibility で**ウィンドウの位置・サイズ**を
+  （**ディスプレイ跨ぎも含め**）yabai 非依存で保存・復元（`--native` または自動）。
 - **メニューバーアプリ (`ywr-menubar`)**: SwiftUI `MenuBarExtra`。現在のレイアウト
   を保存し、自動復元を実行できます。配色は外部ファイルで指定します。
 
