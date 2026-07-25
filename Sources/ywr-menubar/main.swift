@@ -17,10 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let theme = Theme(ThemeLoader(url: CoreWorkspaceActions.themeConfigURL()).load())
         let viewModel = MenuViewModel(actions: CoreWorkspaceActions())
 
+        let hosting = NSHostingController(rootView: MenuContentView(model: viewModel, theme: theme))
+        hosting.sizingOptions = [.preferredContentSize]   // size the popover to fit the whole UI (incl. Quit)
+
         let popover = NSPopover()
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 300, height: 380)
-        popover.contentViewController = NSHostingController(rootView: MenuContentView(model: viewModel, theme: theme))
+        popover.contentViewController = hosting
         self.popover = popover
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -31,13 +33,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 button.title = "ywr"   // fallback so the item is never zero-width
             }
-            button.action = #selector(togglePopover)
+            button.action = #selector(handleClick)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         self.statusItem = item
     }
 
-    @objc private func togglePopover() {
+    @objc private func handleClick() {
+        // Right-click shows a Quit menu; left-click toggles the popover.
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+        } else {
+            togglePopover()
+        }
+    }
+
+    private func togglePopover() {
         guard let popover, let button = statusItem?.button else { return }
         if popover.isShown {
             popover.performClose(nil)
@@ -45,6 +57,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+
+    private func showContextMenu() {
+        guard let button = statusItem?.button else { return }
+        let menu = NSMenu()
+        let quit = NSMenuItem(title: "Quit yabai workspaces", action: #selector(quit), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+    }
+
+    @objc private func quit() {
+        NSApp.terminate(nil)
     }
 }
 
