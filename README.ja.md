@@ -155,6 +155,7 @@ swift build                # ywr バイナリをビルド
 swift test                 # 単体テスト（XCTest; Xcode 必要）
 bash Tests/e2e/run.sh      # e2e: 実バイナリ vs 偽 yabai
 bash scripts/report.sh     # → build/report/report.html（結果 + UI スクショ）
+swift package plugin --allow-writing-to-package-directory swiftformat  # 整形
 ```
 
 ## ライセンス

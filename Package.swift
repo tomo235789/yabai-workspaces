@@ -14,6 +14,11 @@ let package = Package(
         .library(name: "YWRTheme", targets: ["YWRTheme"]),
         .library(name: "YWRMenuUI", targets: ["YWRMenuUI"])
     ],
+    dependencies: [
+        // Code formatter, available as a command plugin so contributors don't
+        // need a global install: `swift package plugin swiftformat`.
+        .package(url: "https://github.com/nicklockwood/SwiftFormat", from: "0.55.0")
+    ],
     targets: [
         // Executable: thin CLI layer that wires the core together.
         .executableTarget(

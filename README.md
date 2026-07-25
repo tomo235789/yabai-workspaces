@@ -158,6 +158,7 @@ swift build                # build the ywr binary
 swift test                 # unit tests (XCTest; needs Xcode)
 bash Tests/e2e/run.sh      # end-to-end: real binary vs. a fake yabai
 bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
+swift package plugin --allow-writing-to-package-directory swiftformat  # format code
 ```
 
 ## License
