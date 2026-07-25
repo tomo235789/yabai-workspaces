@@ -1,16 +1,10 @@
 # SwiftFormat configuration for yabai-workspaces.
 # Run: swift package plugin --allow-writing-to-package-directory swiftformat
 #
-# Conservative allow-list tuned to the existing house style: whitespace / import
-# / brace hygiene only. It does NOT rewrite code structure — no single-line-body
-# expansion, no unused-arg renaming, no self insertion/removal, no &&→comma, and
-# it keeps aligned trailing comments and `0..<n` ranges. So it enforces basic
-# consistency without churning the established style.
+# Uses SwiftFormat's recommended default rule set (no --rules allow-list), with
+# only project-wide options set below.
 
 --swiftversion 6.0
 --indent 4
---ranges no-space
-
---rules blankLinesAtEndOfScope,blankLinesAtStartOfScope,consecutiveBlankLines,duplicateImports,emptyBraces,linebreakAtEndOfFile,redundantParens,semicolons,sortImports,spaceAroundBraces,spaceAroundBrackets,spaceAroundGenerics,spaceAroundOperators,spaceAroundParens,spaceInsideBraces,spaceInsideBrackets,spaceInsideComments,spaceInsideGenerics,spaceInsideParens,todos,trailingSpace
 
 --exclude .build,build,scratchpad
