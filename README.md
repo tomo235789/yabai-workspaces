@@ -119,9 +119,8 @@ fonts come from an external `theme.json`.
 swift run ywr-menubar
 ```
 
-> Note: the menu-bar app uses the **yabai backend**, so it needs yabai running.
-> The CLI's automatic native fallback isn't wired into it yet — use the `ywr`
-> CLI with `--native` in yabai-less setups.
+> Like the CLI, the menu-bar app falls back to the **native backend** when yabai
+> isn't running (save and click-to-restore work; **Restore (auto)** needs yabai).
 
 ## Documentation
 

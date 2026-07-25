@@ -27,40 +27,38 @@ struct RestoreCommand: Command {
         let auto = args.contains("--auto")
         let createSpaces = args.contains("--create-spaces")
         let positionsOnly = args.contains("--positions-only")
-        let native = args.contains("--native") || !availability.isAvailable()
+        let nativeFlag = args.contains("--native")
+        let yabaiDown = !availability.isAvailable()
 
         if createSpaces && positionsOnly {
             throw CLIError.message("--create-spaces cannot be combined with --positions-only (positions-only does not touch Spaces).")
         }
 
-        // Native backend: yabai-independent, geometry-only restore by name.
-        if native {
-            // These need the yabai backend; don't silently ignore them.
-            if auto { throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).") }
-            if createSpaces { throw CLIError.message("--create-spaces requires the yabai backend.") }
-            let positional = args.filter { !$0.hasPrefix("--") }
-            guard let snapName = positional.first else {
-                throw CLIError.usage("ywr restore <name> --native")
+        // --auto needs the yabai backend (it matches on display fingerprints).
+        if auto {
+            if nativeFlag { throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).") }
+            guard let selected = try resolveAuto() else { return 1 }
+            if dryRun {
+                return try previewPlan(for: selected, createSpaces: createSpaces, positionsOnly: positionsOnly)
             }
-            let snapshot: Snapshot
-            do { snapshot = try store.load(name: snapName) } catch { throw CLIError.message("\(error)") }
-            return nativeRestore(snapshot, dryRun: dryRun)
+            return try executeRestore(selected, createSpaces: createSpaces, positionsOnly: positionsOnly)
         }
 
+        // Restore by name.
+        let positional = args.filter { !$0.hasPrefix("--") }
+        guard let snapName = positional.first else {
+            throw CLIError.usage(usage)
+        }
         let snapshot: Snapshot
-        if auto {
-            guard let selected = try resolveAuto() else { return 1 }
-            snapshot = selected
-        } else {
-            let positional = args.filter { !$0.hasPrefix("--") }
-            guard let snapName = positional.first else {
-                throw CLIError.usage(usage)
-            }
-            do {
-                snapshot = try store.load(name: snapName)
-            } catch {
-                throw CLIError.message("\(error)")
-            }
+        do { snapshot = try store.load(name: snapName) } catch { throw CLIError.message("\(error)") }
+
+        // Use the native backend when forced (--native), when yabai isn't
+        // running, OR when the snapshot itself is native — a native snapshot's
+        // zeroed geometry can't go through the yabai planner.
+        let snapshotIsNative = snapshot.displayProfile.fingerprint == NativeCapturer.nativeFingerprint
+        if nativeFlag || yabaiDown || snapshotIsNative {
+            if createSpaces { throw CLIError.message("--create-spaces requires the yabai backend.") }
+            return nativeRestore(snapshot, dryRun: dryRun)
         }
 
         if dryRun {

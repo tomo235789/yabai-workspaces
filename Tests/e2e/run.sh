@@ -107,6 +107,10 @@ assert_eq "$(grep -c -- '--add' "$YWR_E2E_YABAI_LOG")" "3" "signal install adds 
 "$YWR" signal uninstall >/dev/null
 assert_eq "$(grep -c -- '--remove' "$YWR_E2E_YABAI_LOG")" "3" "signal uninstall removes 3 signals"
 
+# a native snapshot restores via the native backend even when yabai is available
+"$YWR" snapshot save nat --native >/dev/null 2>&1
+assert_contains "$("$YWR" restore nat 2>&1)" "Native backend" "native snapshot routes to native restore even with yabai up"
+
 # unknown command fails
 "$YWR" bogus >/dev/null 2>&1; assert_eq "$?" "1" "unknown command exits non-zero"
 
