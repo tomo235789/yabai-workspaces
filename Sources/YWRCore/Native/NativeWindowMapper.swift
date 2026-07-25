@@ -26,7 +26,9 @@ public enum NativeWindowMapper {
         }
     }
 
-    public static func windows(from infoList: [[String: Any]]) -> [Window] {
+    /// - Parameter regularAppPIDs: when non-nil, only windows owned by one of
+    ///   these pids are kept (used to drop system/helper-process noise).
+    public static func windows(from infoList: [[String: Any]], regularAppPIDs: Set<Int>? = nil) -> [Window] {
         var result = [Window]()
 
         for dict in infoList {
@@ -48,6 +50,9 @@ public enum NativeWindowMapper {
 
             // Skip non-application windows (layer != 0: menu bar, dock, …).
             guard layer == 0 else { continue }
+
+            // Keep only regular GUI apps' windows when a filter is provided.
+            if let regularAppPIDs, !regularAppPIDs.contains(pid) { continue }
 
             guard let ownerName = ownerNameRaw as? String, !ownerName.isEmpty else {
                 continue

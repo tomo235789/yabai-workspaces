@@ -1,13 +1,12 @@
 import Foundation
 import CoreGraphics
+import AppKit
 
-// Implemented via ollama qwen3-coder-next, reviewed and integrated.
-//
 // ROADMAP / PoC: yabai-independent, on-screen window enumeration via
 // CoreGraphics. Returns [Window] with display/space unknown (0) — the native
 // backend targets positions-only restore that works even when yabai can't run
-// (e.g. "Displays have separate Spaces" off). Titles require screen-recording
-// permission; geometry does not. Verified on device.
+// (e.g. "Displays have separate Spaces" off). Window titles require Screen
+// Recording permission; geometry does not. Verified on device.
 public protocol NativeWindowEnumerating: Sendable {
     func enumerate() -> [Window]
 }
@@ -24,6 +23,17 @@ public struct CGWindowEnumerator: NativeWindowEnumerating {
         guard let infoArray = windowList as? [[String: Any]] else {
             return []
         }
-        return NativeWindowMapper.windows(from: infoArray)
+        // Keep only windows owned by regular GUI apps — this drops the large
+        // amount of noise from system/helper/agent processes (Window Server,
+        // *ViewService, Open and Save Panel Service, Spotlight, loginwindow, …).
+        return NativeWindowMapper.windows(from: infoArray, regularAppPIDs: regularAppPIDs())
+    }
+
+    private func regularAppPIDs() -> Set<Int> {
+        Set(
+            NSWorkspace.shared.runningApplications
+                .filter { $0.activationPolicy == .regular }
+                .map { Int($0.processIdentifier) }
+        )
     }
 }

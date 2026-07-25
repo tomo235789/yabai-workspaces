@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 // Implemented via ollama qwen3-coder-next, reviewed and integrated.
 //
@@ -62,7 +63,7 @@ public struct NativeRestorer {
             if let match = matcher.bestMatch(for: saved, among: available) {
                 available.removeAll { $0.id == match.id }
                 do {
-                    try controller.setFrame(pid: match.pid, matchTitle: match.title, currentFrame: match.frame, to: saved.frame)
+                    try controller.setFrame(pid: match.pid, windowID: CGWindowID(match.id), to: saved.frame)
                     outcomes.append(RestoreOutcome(label: label, status: .movedPositionsOnly))
                 } catch {
                     outcomes.append(RestoreOutcome(label: label, status: .failed(reason: "\(error)")))

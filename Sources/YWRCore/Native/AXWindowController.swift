@@ -1,27 +1,32 @@
 import Foundation
 import ApplicationServices
+import CoreGraphics
 
 // Implemented via ollama qwen3-coder-next, reviewed and integrated with fixes:
-//   - removed a duplicate `Frame` definition, renamed the frame helper to avoid
-//     shadowing the `currentFrame` parameter, replaced unsafe bitcasts with
-//     bridging casts, and used AXValueGetValue's Bool result correctly.
+//   - removed CFRelease (Swift/ARC manages CoreFoundation lifetimes),
+//   - build real CGPoint/CGSize values for AXValueCreate (the draft passed a
+//     Double pointer, which is invalid and won't compile on a `let` frame).
 //
-// ROADMAP / PoC: move/resize a window via the Accessibility API, independent of
-// yabai. Matching is by owner pid + title, disambiguated by the window whose
-// CURRENT geometry is closest to `currentFrame` (the CGWindowList frame of the
-// matched window) — so multiple same-title / untitled windows target correctly.
-// Needs Accessibility permission; verified on device.
+// Robust native mover: targets a window by its CGWindowID (stable within a
+// session) via the private `_AXUIElementGetWindow`, so it's independent of
+// window titles (which need Screen Recording permission). Enables the AX tree
+// for Electron/Chromium apps via AXManualAccessibility. Needs Accessibility
+// permission; verified on device.
+
+@_silgen_name("_AXUIElementGetWindow")
+private func _AXUIElementGetWindow(_ element: AXUIElement, _ identifier: UnsafeMutablePointer<CGWindowID>) -> AXError
+
 public enum AXWindowError: Error, CustomStringConvertible {
     case appHasNoWindows(pid: Int)
-    case windowNotFound(pid: Int, title: String)
+    case windowNotFound(pid: Int, windowID: UInt32)
     case setFailed(String)
 
     public var description: String {
         switch self {
         case .appHasNoWindows(let pid):
             return "application PID \(pid) has no accessible windows"
-        case .windowNotFound(let pid, let title):
-            return "window titled '\(title)' not found in application PID \(pid)"
+        case .windowNotFound(let pid, let windowID):
+            return "window \(windowID) not found in application PID \(pid)"
         case .setFailed(let message):
             return "failed to set window frame: \(message)"
         }
@@ -29,48 +34,28 @@ public enum AXWindowError: Error, CustomStringConvertible {
 }
 
 public protocol NativeWindowControlling: Sendable {
-    func setFrame(pid: Int, matchTitle: String, currentFrame: Frame, to frame: Frame) throws
+    func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws
 }
 
 public struct AXWindowController: NativeWindowControlling {
     public init() {}
 
-    public func setFrame(pid: Int, matchTitle: String, currentFrame: Frame, to frame: Frame) throws {
+    public func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
         let app = AXUIElementCreateApplication(pid_t(pid))
+
+        // Electron/Chromium apps only expose their AX window tree once this is set.
+        _ = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
 
         guard let windows = copyWindows(app), !windows.isEmpty else {
             throw AXWindowError.appHasNoWindows(pid: pid)
         }
 
-        let candidates: [AXUIElement]
-        if matchTitle.isEmpty {
-            candidates = windows
-        } else {
-            let titled = windows.filter { copyStringAttribute($0, kAXTitleAttribute) == matchTitle }
-            guard !titled.isEmpty else {
-                throw AXWindowError.windowNotFound(pid: pid, title: matchTitle)
-            }
-            candidates = titled
+        guard let window = windows.first(where: { cgWindowID(of: $0) == windowID }) else {
+            throw AXWindowError.windowNotFound(pid: pid, windowID: windowID)
         }
 
-        // Disambiguate by the candidate whose current geometry is closest to the
-        // matched window's known frame; unreadable frames rank worst.
-        var best: AXUIElement?
-        var bestDistance = Double.infinity
-        for window in candidates {
-            guard let f = axFrame(of: window) else { continue }
-            let dx = f.x - currentFrame.x, dy = f.y - currentFrame.y
-            let dw = f.w - currentFrame.w, dh = f.h - currentFrame.h
-            let distance = dx * dx + dy * dy + dw * dw + dh * dh
-            if distance < bestDistance {
-                bestDistance = distance
-                best = window
-            }
-        }
-        let window = best ?? candidates[0]
-
-        var position = CGPoint(x: frame.x, y: frame.y)
-        guard let positionValue = AXValueCreate(.cgPoint, &position) else {
+        var point = CGPoint(x: frame.x, y: frame.y)
+        guard let positionValue = AXValueCreate(.cgPoint, &point) else {
             throw AXWindowError.setFailed("position (AXValueCreate failed)")
         }
         if AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) != .success {
@@ -92,25 +77,9 @@ public struct AXWindowController: NativeWindowControlling {
         return value as? [AXUIElement]
     }
 
-    private func copyStringAttribute(_ element: AXUIElement, _ attr: String) -> String? {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, attr as CFString, &value) == .success else { return nil }
-        return value as? String
-    }
-
-    private func axFrame(of window: AXUIElement) -> Frame? {
-        var positionValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue) == .success,
-              let pos = positionValue, CFGetTypeID(pos) == AXValueGetTypeID() else { return nil }
-        var point = CGPoint.zero
-        guard AXValueGetValue(unsafeDowncast(pos, to: AXValue.self), .cgPoint, &point) else { return nil }
-
-        var sizeValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue) == .success,
-              let sz = sizeValue, CFGetTypeID(sz) == AXValueGetTypeID() else { return nil }
-        var size = CGSize.zero
-        guard AXValueGetValue(unsafeDowncast(sz, to: AXValue.self), .cgSize, &size) else { return nil }
-
-        return Frame(x: Double(point.x), y: Double(point.y), w: Double(size.width), h: Double(size.height))
+    private func cgWindowID(of window: AXUIElement) -> CGWindowID? {
+        var id: CGWindowID = 0
+        guard _AXUIElementGetWindow(window, &id) == .success else { return nil }
+        return id
     }
 }

@@ -8,13 +8,13 @@ private final class FakeEnumerator: NativeWindowEnumerating, @unchecked Sendable
 }
 
 private final class FakeController: NativeWindowControlling, @unchecked Sendable {
-    struct Call: Equatable { let pid: Int; let title: String; let currentFrame: Frame; let frame: Frame }
+    struct Call: Equatable { let pid: Int; let windowID: UInt32; let frame: Frame }
     private(set) var calls: [Call] = []
     var failForPids: Set<Int> = []
     struct Boom: Error {}
-    func setFrame(pid: Int, matchTitle: String, currentFrame: Frame, to frame: Frame) throws {
+    func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
         if failForPids.contains(pid) { throw Boom() }
-        calls.append(Call(pid: pid, title: matchTitle, currentFrame: currentFrame, frame: frame))
+        calls.append(Call(pid: pid, windowID: windowID, frame: frame))
     }
 }
 
