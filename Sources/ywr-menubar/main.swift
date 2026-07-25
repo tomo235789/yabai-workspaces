@@ -1,9 +1,9 @@
 import AppKit
-import SwiftUI
 import ApplicationServices
 import CoreGraphics
-import YWRTheme
+import SwiftUI
 import YWRMenuUI
+import YWRTheme
 
 // Pure-AppKit menu-bar app: a classic NSStatusItem + NSPopover is the most
 // reliable way to show a menu-bar icon (SwiftUI's MenuBarExtra didn't render an

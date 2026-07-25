@@ -1,6 +1,6 @@
-import Foundation
-import CoreGraphics
 import AppKit
+import CoreGraphics
+import Foundation
 
 // ROADMAP / PoC: yabai-independent, on-screen window enumeration via
 // CoreGraphics. Returns [Window] with display/space unknown (0) — the native

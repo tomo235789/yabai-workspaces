@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Renders the menu-bar UI to a PNG without a GUI session, using SwiftUI's
 /// `ImageRenderer`. This is what lets the test/report tooling capture real

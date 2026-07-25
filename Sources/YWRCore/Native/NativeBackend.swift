@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 // Implemented via ollama qwen3-coder-next, reviewed and integrated.
 //

@@ -102,7 +102,7 @@ public enum HexColor {
         }
 
         let length = cleaned.count
-        guard (length == 6 || length == 8),
+        guard length == 6 || length == 8,
               cleaned.allSatisfy({ $0.isHexDigit }) else {
             throw ThemeError.invalidHex(hex)
         }

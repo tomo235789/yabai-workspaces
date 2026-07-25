@@ -1,6 +1,6 @@
-import Foundation
 import ApplicationServices
 import CoreGraphics
+import Foundation
 
 // Robust native mover: targets a window by its CGWindowID (stable within a
 // session) via the private `_AXUIElementGetWindow`, so it's independent of

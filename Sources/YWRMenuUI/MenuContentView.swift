@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// The menu-bar popover content. Actions are fired inside a `Task` so the async
 /// view-model methods run without blocking the main actor.

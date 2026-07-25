@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 // Experimental "walk the desktops" restore for the native (yabai-independent)
 // backend. The public macOS APIs can't MOVE a window to another Space, but a

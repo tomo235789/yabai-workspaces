@@ -1,6 +1,6 @@
 import Foundation
-import YWRTheme
 import YWRMenuUI
+import YWRTheme
 
 // Headless screenshot tool. Renders the menu-bar UI in several states to PNG
 // files so the test/report tooling has real screenshots without a GUI session.
