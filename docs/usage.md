@@ -204,9 +204,21 @@ bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 On first launch the app **prompts for Accessibility** (required to move windows)
 and **Screen Recording** (optional, improves window-title matching), registering
 itself in System Settings ▸ Privacy & Security. Enable **Accessibility** for
-"yabai workspaces" there. If you granted it before a rebuild and moves stop
-working, **remove the old entry (−) and re-add it** — a rebuild invalidates the
-previous grant.
+"yabai workspaces" there.
+
+**Keep the grant across rebuilds.** By default the bundle is ad-hoc signed, so
+every rebuild looks like a new app to macOS and you must re-add it under
+Accessibility. Create a stable self-signed certificate **once** and the grant
+sticks across rebuilds (the signature's designated requirement is keyed on the
+certificate, not the changing binary hash):
+
+```sh
+bash scripts/create-signing-cert.sh   # one-time; no sudo, no prompts
+bash scripts/make-menubar-app.sh      # now signs with that identity
+```
+
+Grant Accessibility once more after the first stable-signed build (the signature
+changed from ad-hoc); after that, rebuilds keep the grant.
 
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):
