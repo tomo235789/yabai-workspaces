@@ -105,4 +105,24 @@ public struct RestoreReport: Sendable {
             return $0.status == .unmatched
         }
     }
+
+    /// Saved windows with no matching live window (app not running, etc.).
+    public var unmatched: [RestoreOutcome] {
+        outcomes.filter { $0.status == .unmatched }
+    }
+
+    /// Windows that matched a live window but whose move threw (e.g. missing
+    /// Accessibility permission). Kept separate from `unmatched` so callers can
+    /// tell "app not running" apart from "couldn't drive the window".
+    public var failed: [RestoreOutcome] {
+        outcomes.filter { if case .failed = $0.status { return true }; return false }
+    }
+
+    /// First failure reason, for a one-line diagnostic hint.
+    public var firstFailureReason: String? {
+        for outcome in outcomes {
+            if case let .failed(reason) = outcome.status { return reason }
+        }
+        return nil
+    }
 }

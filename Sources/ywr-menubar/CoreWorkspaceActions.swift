@@ -74,8 +74,36 @@ actor CoreWorkspaceActions: WorkspaceActions {
             return "Restored '\(name)': \(report.moved.count) moved, \(report.failures.count) failed\(poNote)"
         } else {
             let report = nativeRestorer.restore(snapshot)
-            return "Restored '\(name)' (native): \(report.moved.count) repositioned, \(report.failures.count) skipped"
+            return nativeStatus(name: name, report: report)
         }
+    }
+
+    /// Human-readable native-restore result. Always reports the real counts and
+    /// the first failure reason; adds an Accessibility-permission hint ONLY when
+    /// the failures look like an authorization problem (AX couldn't read any of
+    /// an app's windows) — not for unrelated failures like a window that closed.
+    nonisolated private func nativeStatus(name: String, report: RestoreReport) -> String {
+        let moved = report.moved.count
+        let failed = report.failed.count
+        let unmatched = report.unmatched.count
+        var parts = ["\(moved) repositioned"]
+        if failed > 0 { parts.append("\(failed) failed") }
+        if unmatched > 0 { parts.append("\(unmatched) not running") }
+        var msg = "Restored '\(name)' (native): " + parts.joined(separator: ", ")
+        if moved == 0 && failed > 0 {
+            if let reason = report.firstFailureReason, Self.looksLikeMissingAccessibility(reason) {
+                msg += ". Grant Accessibility permission to 'yabai workspaces' in System Settings."
+            } else if let reason = report.firstFailureReason {
+                msg += " (\(reason))"
+            }
+        }
+        return msg
+    }
+
+    /// AX reports "no accessible windows" when it can't read an app's window
+    /// list at all — the classic symptom of a missing/stale Accessibility grant.
+    nonisolated private static func looksLikeMissingAccessibility(_ reason: String) -> Bool {
+        reason.contains("no accessible windows")
     }
 
     func delete(name: String) async throws {

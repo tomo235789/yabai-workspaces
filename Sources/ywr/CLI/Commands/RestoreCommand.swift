@@ -80,6 +80,15 @@ struct RestoreCommand: Command {
         let report = nativeRestorer.restore(snapshot)
         print("Restored '\(snapshot.name)': \(report.moved.count) window(s) repositioned.")
         guard !report.failures.isEmpty else { return 0 }
+        // When nothing moved and AX couldn't read any window ("no accessible
+        // windows"), that's the classic missing-Accessibility symptom — call it
+        // out. Other failures print their own reason in the list below.
+        if report.moved.isEmpty,
+           let reason = report.firstFailureReason, reason.contains("no accessible windows") {
+            print("\nNothing moved: AX couldn't read any window — Accessibility permission is missing.")
+            print("Grant it to the program running `ywr` (Terminal, etc.) in")
+            print("System Settings ▸ Privacy & Security ▸ Accessibility, then retry.")
+        }
         print("\n\(report.failures.count) window(s) could not be restored:")
         for o in report.failures {
             switch o.status {

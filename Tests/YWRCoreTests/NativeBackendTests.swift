@@ -108,5 +108,9 @@ final class NativeBackendTests: XCTestCase {
 
         let report = restorer.restore(snap)
         XCTAssertEqual(report.failures.count, 2)  // Code setFrame throws → failed; Safari → unmatched
+        XCTAssertEqual(report.failed.count, 1)    // Code matched but setFrame threw
+        XCTAssertEqual(report.unmatched.count, 1) // Safari not running
+        XCTAssertNotNil(report.firstFailureReason)
+        XCTAssertTrue(report.moved.isEmpty)
     }
 }
