@@ -42,11 +42,13 @@ flowchart TD
 ## Quick start
 
 ```sh
-# 1. (optional but recommended) install yabai for full Space/Display restore
+# 1. (optional) install yabai for full Space/Display restore. Cross-Space moves
+#    also require its scripting-addition — see the yabai wiki. Without yabai,
+#    ywr uses the native backend (position/size + display, no Space moves).
 brew install koekeishiya/formulae/yabai && yabai --start-service
 
 # 2. build ywr and put it on your PATH
-swift build -c release && cp .build/release/ywr ~/.local/bin/ywr
+swift build -c release && mkdir -p ~/.local/bin && cp .build/release/ywr ~/.local/bin/ywr
 
 # 3. check your environment (shows which backend is active)
 ywr doctor
@@ -56,8 +58,10 @@ ywr snapshot save home
 ywr restore home            # preview first with: ywr restore home --dry-run
 ```
 
-Grant **Accessibility** permission to whatever runs `ywr` (Terminal, etc.) —
-it's required to move windows in either backend.
+Permissions differ by backend: the **native backend** needs **Accessibility**
+granted to whatever runs `ywr` (Terminal, etc.); the **yabai backend** instead
+needs **yabai itself** to have Accessibility, plus its scripting-addition for
+cross-Space moves — `ywr` only shells out to `yabai -m`.
 
 ## What restore does
 
@@ -93,13 +97,17 @@ Force the native backend anytime with `--native`
 
 ## Auto-restore
 
-Restore automatically when your displays change — pick whichever you like:
+Restore automatically when your displays change — pick whichever you like.
+**These require the yabai backend** (they use yabai's display info/events and
+are not available in the native, yabai-less setup):
 
 ```sh
 ywr restore --auto        # pick the snapshot matching the current displays
 ywr daemon                # watch for display changes and auto-restore (polling)
 ywr signal install        # let yabai fire restore on display events (no daemon)
 ```
+
+Without yabai, restore an explicit snapshot by name: `ywr restore home --native`.
 
 ## Menu-bar app
 
@@ -110,6 +118,10 @@ fonts come from an external `theme.json`.
 ```sh
 swift run ywr-menubar
 ```
+
+> Note: the menu-bar app uses the **yabai backend**, so it needs yabai running.
+> The CLI's automatic native fallback isn't wired into it yet — use the `ywr`
+> CLI with `--native` in yabai-less setups.
 
 ## Documentation
 

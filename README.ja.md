@@ -40,11 +40,13 @@ flowchart TD
 ## クイックスタート
 
 ```sh
-# 1.（任意・推奨）Space/ディスプレイまで完全復元したいなら yabai を導入
+# 1.（任意）Space/ディスプレイまで完全復元したいなら yabai を導入。Space 跨ぎには
+#    scripting-addition も必要（yabai wiki 参照）。yabai 無しでも native バックエンドで
+#    位置・サイズ＋ディスプレイは復元できます（Space 移動は不可）。
 brew install koekeishiya/formulae/yabai && yabai --start-service
 
 # 2. ywr をビルドして PATH に配置
-swift build -c release && cp .build/release/ywr ~/.local/bin/ywr
+swift build -c release && mkdir -p ~/.local/bin && cp .build/release/ywr ~/.local/bin/ywr
 
 # 3. 環境チェック（どのバックエンドが有効かを表示）
 ywr doctor
@@ -54,8 +56,10 @@ ywr snapshot save home
 ywr restore home            # まず確認: ywr restore home --dry-run
 ```
 
-`ywr` を動かすプロセス（ターミナル等）に **Accessibility 権限**を付与してください
-（どちらのバックエンドでもウィンドウ移動に必須）。
+権限はバックエンドで異なります。**native バックエンド**は `ywr` を動かすプロセス
+（ターミナル等）に **Accessibility 権限**が必要。**yabai バックエンド**は代わりに
+**yabai 自身**に Accessibility（＋ Space 跨ぎには scripting-addition）が必要です
+（`ywr` は `yabai -m` を呼ぶだけ）。
 
 ## 復元の流れ
 
@@ -91,13 +95,17 @@ flowchart LR
 
 ## 自動復元
 
-ディスプレイ構成が変わったら自動で復元 — 好みの方式を選べます:
+ディスプレイ構成が変わったら自動で復元 — 好みの方式を選べます。
+**これらは yabai バックエンド専用**です（yabai のディスプレイ情報/イベントを使うため、
+yabai 無しの native 構成では使えません）:
 
 ```sh
 ywr restore --auto        # 現在の構成に一致する snapshot を自動選択
 ywr daemon                # ディスプレイ変更を監視して自動復元（ポーリング）
 ywr signal install        # yabai のイベントで復元を発火（デーモン不要）
 ```
+
+yabai 無しの場合は、名前を指定して復元してください: `ywr restore home --native`。
 
 ## メニューバーアプリ
 
@@ -108,6 +116,10 @@ ywr signal install        # yabai のイベントで復元を発火（デーモ�
 ```sh
 swift run ywr-menubar
 ```
+
+> 注: メニューバーアプリは **yabai バックエンド**を使うため、yabai の起動が必要です。
+> CLI の自動 native フォールバックはまだ組み込まれていません。yabai 無しの環境では
+> `ywr` CLI に `--native` を付けて使ってください。
 
 ## ドキュメント
 
