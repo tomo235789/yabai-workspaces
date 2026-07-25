@@ -179,8 +179,12 @@ Build `build/YabaiWorkspaces.app` and open it (the ▤ icon appears in the menu 
 bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
-Grant **Accessibility** permission to "yabai workspaces" the first time (System
-Settings ▸ Privacy & Security ▸ Accessibility).
+On first launch the app **prompts for Accessibility** (required to move windows)
+and **Screen Recording** (optional, improves window-title matching), registering
+itself in System Settings ▸ Privacy & Security. Enable **Accessibility** for
+"yabai workspaces" there. If you granted it before a rebuild and moves stop
+working, **remove the old entry (−) and re-add it** — a rebuild invalidates the
+previous grant.
 
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):

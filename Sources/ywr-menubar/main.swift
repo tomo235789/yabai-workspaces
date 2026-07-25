@@ -1,5 +1,7 @@
 import AppKit
 import SwiftUI
+import ApplicationServices
+import CoreGraphics
 import YWRTheme
 import YWRMenuUI
 
@@ -14,6 +16,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        requestPermissions()
+
         let theme = Theme(ThemeLoader(url: CoreWorkspaceActions.themeConfigURL()).load())
         let viewModel = MenuViewModel(actions: CoreWorkspaceActions())
 
@@ -38,6 +42,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         self.statusItem = item
+    }
+
+    /// Actively request the permissions the native backend needs, so the app
+    /// registers itself in System Settings and the user gets a prompt — otherwise
+    /// it silently fails the AX calls and never appears in the permission lists.
+    private func requestPermissions() {
+        // Accessibility (required to move/resize windows). The prompt option
+        // both shows the system dialog and adds the app to the Accessibility list.
+        // The key is spelled out to avoid the non-Sendable global under Swift 6.
+        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        // Screen Recording (optional: lets window titles be captured for better
+        // matching). Requesting it registers the app in that list too.
+        _ = CGRequestScreenCaptureAccess()
     }
 
     @objc private func handleClick() {
