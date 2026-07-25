@@ -10,7 +10,7 @@ private final class FakeEnumerator: NativeWindowEnumerating, @unchecked Sendable
 private final class FakeController: NativeWindowControlling, @unchecked Sendable {
     struct Call: Equatable { let pid: Int; let windowID: UInt32; let frame: Frame }
     private(set) var calls: [Call] = []
-    private(set) var raiseOrder: [UInt32] = []
+    private(set) var raises: [(pid: Int, windowID: UInt32)] = []
     var failForPids: Set<Int> = []
     struct Boom: Error {}
     func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
@@ -18,7 +18,7 @@ private final class FakeController: NativeWindowControlling, @unchecked Sendable
         calls.append(Call(pid: pid, windowID: windowID, frame: frame))
     }
     func raise(pid: Int, windowID: UInt32) throws {
-        raiseOrder.append(windowID)
+        raises.append((pid: pid, windowID: windowID))
     }
 }
 
@@ -60,19 +60,20 @@ final class NativeBackendTests: XCTestCase {
         _ = snap
     }
 
-    func testRestoreRaisesOnlyThePreviouslyFrontmostWindow() {
+    func testRestoreRaisesOnlyThePreviouslyFrontmostWindowUsingLivePID() {
         // Saved order is front-to-back [10, 20, 30]; only the frontmost (10)
-        // should be raised, avoiding activating every app.
+        // should be raised. Live windows use DISTINCT pids from the saved ones,
+        // so this also verifies raise targets the LIVE window (not a stale pid).
         let live = [
-            liveWindow(10, app: "A", title: "1", pid: 1),
-            liveWindow(20, app: "B", title: "2", pid: 2),
-            liveWindow(30, app: "C", title: "3", pid: 3)
+            liveWindow(10, app: "A", title: "1", pid: 501),
+            liveWindow(20, app: "B", title: "2", pid: 502),
+            liveWindow(30, app: "C", title: "3", pid: 503)
         ]
         let controller = FakeController()
         let restorer = NativeRestorer(enumerator: FakeEnumerator(live), controller: controller)
         let saved: [WindowSnapshot] = [10, 20, 30].map { id in
             WindowSnapshot(app: String(UnicodeScalar(64 + id / 10)!), title: String(id / 10),
-                           role: "AXWindow", pid: id / 10, space: 0, display: 0,
+                           role: "AXWindow", pid: id, space: 0, display: 0,       // saved pids differ from live
                            frame: Frame(x: 0, y: 0, w: 100, h: 100),
                            relativeFrame: RelativeFrame(x: 0, y: 0, w: 0, h: 0),
                            flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false))
@@ -82,7 +83,9 @@ final class NativeBackendTests: XCTestCase {
                             spaces: [], windows: saved)
 
         _ = restorer.restore(snap)
-        XCTAssertEqual(controller.raiseOrder, [10])
+        XCTAssertEqual(controller.raises.count, 1)
+        XCTAssertEqual(controller.raises.first?.windowID, 10)
+        XCTAssertEqual(controller.raises.first?.pid, 501, "raise must use the LIVE window's pid")
     }
 
     func testRestoreReportsUnmatchedAndFailures() {

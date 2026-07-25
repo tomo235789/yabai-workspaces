@@ -1,7 +1,6 @@
 import Foundation
 import ApplicationServices
 import CoreGraphics
-import AppKit
 
 // Robust native mover: targets a window by its CGWindowID (stable within a
 // session) via the private `_AXUIElementGetWindow`, so it's independent of
@@ -40,7 +39,7 @@ public struct AXWindowController: NativeWindowControlling {
     public init() {}
 
     public func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
-        let window = try resolveWindow(pid: pid, windowID: windowID)
+        let (_, window) = try resolve(pid: pid, windowID: windowID)
 
         // Position uses global coordinates spanning all displays, so setting it
         // moves the window across monitors. But AX clamps the first setPosition
@@ -72,15 +71,18 @@ public struct AXWindowController: NativeWindowControlling {
     }
 
     public func raise(pid: Int, windowID: UInt32) throws {
-        let window = try resolveWindow(pid: pid, windowID: windowID)
+        let (app, window) = try resolve(pid: pid, windowID: windowID)
+        // Bring to front via AX: NSRunningApplication.activate() is unreliable
+        // from a non-GUI CLI process, whereas an accessibility client can set the
+        // app frontmost and the window main/focused directly.
+        _ = AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        _ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
         _ = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-        // Activating the app in back-to-front order builds up global z-order.
-        NSRunningApplication(processIdentifier: pid_t(pid))?.activate()
     }
 
     // MARK: - Helpers
 
-    private func resolveWindow(pid: Int, windowID: UInt32) throws -> AXUIElement {
+    private func resolve(pid: Int, windowID: UInt32) throws -> (app: AXUIElement, window: AXUIElement) {
         let app = AXUIElementCreateApplication(pid_t(pid))
         // Electron/Chromium apps only expose their AX window tree once this is set.
         _ = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
@@ -91,7 +93,7 @@ public struct AXWindowController: NativeWindowControlling {
         guard let window = windows.first(where: { cgWindowID(of: $0) == windowID }) else {
             throw AXWindowError.windowNotFound(pid: pid, windowID: windowID)
         }
-        return window
+        return (app, window)
     }
 
     private func copyWindows(_ app: AXUIElement) -> [AXUIElement]? {
