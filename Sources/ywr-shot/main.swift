@@ -1,6 +1,6 @@
 import Foundation
-import YWRTheme
 import YWRMenuUI
+import YWRTheme
 
 // Headless screenshot tool. Renders the menu-bar UI in several states to PNG
 // files so the test/report tooling has real screenshots without a GUI session.
@@ -24,7 +24,7 @@ func run() -> Int32 {
         ("01-empty", "Initial state", [], "", ""),
         ("02-typing", "Naming a snapshot", [], "", "home"),
         ("03-saved", "After saving, with snapshots listed", ["home", "office", "cafe"], "Saved 'home'", ""),
-        ("04-restored", "After auto-restore", ["home", "office", "cafe"], "Restored 'home': 12 moved, 0 failed", "")
+        ("04-restored", "After auto-restore", ["home", "office", "cafe"], "Restored 'home': 12 moved, 0 failed", ""),
     ]
 
     var manifest: [[String: String]] = []

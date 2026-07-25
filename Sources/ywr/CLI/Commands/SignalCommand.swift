@@ -6,7 +6,9 @@ import YWRCore
 struct SignalCommand: Command {
     let name = "signal"
     let summary = "Install/remove yabai signals for auto-restore on display changes"
-    var usage: String { "ywr signal <install|uninstall|list>" }
+    var usage: String {
+        "ywr signal <install|uninstall|list>"
+    }
 
     private let installer: SignalInstaller
 
@@ -22,7 +24,9 @@ struct SignalCommand: Command {
         case "install":
             try installer.install()
             print("Installed \(installer.definitions.count) yabai signal(s):")
-            for d in installer.definitions { print("  • \(d.event) → \(d.label)") }
+            for d in installer.definitions {
+                print("  • \(d.event) → \(d.label)")
+            }
             return 0
         case "uninstall":
             let errors = installer.uninstall()
@@ -30,12 +34,16 @@ struct SignalCommand: Command {
             if !errors.isEmpty {
                 // Best-effort cleanup: surface issues as warnings but don't fail.
                 print("Warnings (\(errors.count)):")
-                for e in errors { print("  • \(e)") }
+                for e in errors {
+                    print("  • \(e)")
+                }
             }
             return 0
         case "list":
             print("ywr signals:")
-            for d in installer.definitions { print("  • \(d.event) → \(d.label)") }
+            for d in installer.definitions {
+                print("  • \(d.event) → \(d.label)")
+            }
             return 0
         default:
             throw CLIError.usage(usage)

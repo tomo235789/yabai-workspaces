@@ -28,6 +28,7 @@ public protocol SnapshotStore {
     /// Full snapshots, needed by `restore --auto` to score every candidate.
     func loadAll() throws -> [Snapshot]
     func exists(name: String) -> Bool
+    func delete(name: String) throws
 }
 
 public enum SnapshotStoreError: Error, CustomStringConvertible {
@@ -36,7 +37,7 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case let .notFound(name):
-            return "snapshot '\(name)' not found"
+            "snapshot '\(name)' not found"
         }
     }
 }
@@ -82,6 +83,15 @@ public struct FileSnapshotStore: SnapshotStore {
     public func exists(name: String) -> Bool {
         guard Paths.isValidName(name) else { return false }
         return fileManager.fileExists(atPath: paths.snapshotFile(name: name).path)
+    }
+
+    public func delete(name: String) throws {
+        guard Paths.isValidName(name) else { throw NameError.invalid(name) }
+        let url = paths.snapshotFile(name: name)
+        guard fileManager.fileExists(atPath: url.path) else {
+            throw SnapshotStoreError.notFound(name: name)
+        }
+        try fileManager.removeItem(at: url)
     }
 
     public func list() throws -> [SnapshotSummary] {

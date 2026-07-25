@@ -5,8 +5,8 @@ import Foundation
 // handler (wired to `restore --auto`). No GCD — the loop is driven by an
 // injected Waiter so tests can run a bounded number of iterations instantly.
 
-// Not Sendable: the daemon runs on a single foreground thread, and concrete
-// handlers legitimately hold non-Sendable collaborators (e.g. SnapshotStore).
+/// Not Sendable: the daemon runs on a single foreground thread, and concrete
+/// handlers legitimately hold non-Sendable collaborators (e.g. SnapshotStore).
 public protocol DisplayChangeHandling {
     func handleChange(from oldFingerprint: String?, to newFingerprint: String)
 }
@@ -24,7 +24,7 @@ public struct DisplayWatcher: DisplayWatching {
         self.fingerprint = fingerprint
     }
 
-    public func runOnce(previousFingerprint: String?) throws -> String {
+    public func runOnce(previousFingerprint _: String?) throws -> String {
         let displays = try yabai.queryDisplays()
         return fingerprint.fingerprint(for: displays)
     }
@@ -56,7 +56,7 @@ public struct DisplayMonitor {
         var count = 0
 
         while true {
-            if let iterations = iterations, count >= iterations {
+            if let iterations, count >= iterations {
                 break
             }
 

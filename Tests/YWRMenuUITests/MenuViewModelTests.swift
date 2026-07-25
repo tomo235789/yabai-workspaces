@@ -17,17 +17,45 @@ private final class FakeActions: WorkspaceActions, @unchecked Sendable {
     struct SaveError: Error {}
     private(set) var restoredNames: [String] = []
 
-    func snapshotNames() async -> [String] { names }
-    func save(name: String) async throws {
-        if saveShouldThrow { throw SaveError() }
-        savedNames.append(name)
-        names.append(name)
+    func snapshotNames() async -> [String] {
+        names
     }
+
+    func save(name: String) async throws {
+        if saveShouldThrow {
+            throw SaveError()
+        }
+        savedNames.append(name)
+        if !names.contains(name) {
+            names.append(name)
+        } // overwrite must not duplicate
+    }
+
     func restore(name: String) async throws -> String {
         restoredNames.append(name)
         return "Restored '\(name)'"
     }
-    func restoreAuto() async throws -> String { restoreResult }
+
+    private(set) var walkedNames: [String] = []
+    func restoreAcrossDesktops(name: String) async throws -> String {
+        walkedNames.append(name)
+        return "Restored '\(name)' across desktops"
+    }
+
+    func restoreAuto() async throws -> String {
+        restoreResult
+    }
+
+    private(set) var deletedNames: [String] = []
+    var deleteShouldThrow: Bool = false
+    struct DeleteError: Error {}
+    func delete(name: String) async throws {
+        if deleteShouldThrow {
+            throw DeleteError()
+        }
+        deletedNames.append(name)
+        names.removeAll { $0 == name }
+    }
 }
 
 @MainActor
@@ -42,11 +70,11 @@ final class MenuViewModelTests: XCTestCase {
         let actions = FakeActions()
         let model = MenuViewModel(actions: actions, newName: "  home  ")
         await model.save()
-        XCTAssertEqual(actions.savedNames, ["home"])          // trimmed
+        XCTAssertEqual(actions.savedNames, ["home"]) // trimmed
         XCTAssertEqual(model.status, "Saved 'home'")
-        XCTAssertEqual(model.newName, "")                     // cleared
-        XCTAssertEqual(model.snapshots, ["home"])             // refreshed
-        XCTAssertFalse(model.isBusy)                          // reset after work
+        XCTAssertEqual(model.newName, "") // cleared
+        XCTAssertEqual(model.snapshots, ["home"]) // refreshed
+        XCTAssertFalse(model.isBusy) // reset after work
     }
 
     func testSaveWithEmptyNamePrompts() async {
@@ -72,11 +100,58 @@ final class MenuViewModelTests: XCTestCase {
         XCTAssertFalse(model.isBusy)
     }
 
+    func testRestoreAcrossDesktopsCallsWalkAction() async {
+        let actions = FakeActions(names: ["home"])
+        let model = MenuViewModel(actions: actions)
+        await model.restoreAcrossDesktops(name: "home")
+        XCTAssertEqual(actions.walkedNames, ["home"])
+        XCTAssertEqual(model.status, "Restored 'home' across desktops")
+        XCTAssertFalse(model.isBusy)
+    }
+
     func testRestoreAutoSetsStatus() async {
         let model = MenuViewModel(actions: FakeActions(restoreResult: "Restored 'home': 3 moved, 0 failed"))
         await model.restoreAuto()
         XCTAssertEqual(model.status, "Restored 'home': 3 moved, 0 failed")
         XCTAssertFalse(model.isBusy)
+    }
+
+    func testOverwriteResavesExistingNameWithUpdatedStatus() async {
+        let actions = FakeActions(names: ["home", "office"])
+        let model = MenuViewModel(actions: actions)
+        await model.overwrite(name: "home")
+        XCTAssertEqual(actions.savedNames, ["home"]) // re-saved under the same name
+        XCTAssertEqual(model.snapshots, ["home", "office"]) // refreshed, no duplicate
+        XCTAssertEqual(model.status, "Updated 'home'") // distinct from a fresh Save
+        XCTAssertFalse(model.isBusy)
+    }
+
+    func testOverwriteFailureShowsError() async {
+        let actions = FakeActions(names: ["home"], saveShouldThrow: true)
+        let model = MenuViewModel(actions: actions)
+        await model.overwrite(name: "home")
+        XCTAssertTrue(model.status.hasPrefix("Save failed:"))
+        XCTAssertTrue(actions.savedNames.isEmpty) // nothing saved on failure
+        XCTAssertFalse(model.isBusy) // busy flag cleared even on error
+    }
+
+    func testDeleteRemovesSnapshotAndRefreshes() async {
+        let actions = FakeActions(names: ["home", "office"])
+        let model = MenuViewModel(actions: actions)
+        await model.refresh()
+        await model.delete(name: "home")
+        XCTAssertEqual(actions.deletedNames, ["home"])
+        XCTAssertEqual(model.status, "Deleted 'home'")
+        XCTAssertEqual(model.snapshots, ["office"]) // refreshed
+        XCTAssertFalse(model.isBusy)
+    }
+
+    func testDeleteFailureShowsError() async {
+        let actions = FakeActions(names: ["home"])
+        actions.deleteShouldThrow = true
+        let model = MenuViewModel(actions: actions)
+        await model.delete(name: "home")
+        XCTAssertTrue(model.status.hasPrefix("Delete failed:"))
     }
 
     func testReentrantSaveIsIgnoredWhileBusy() async {
@@ -96,11 +171,26 @@ final class MenuViewModelTests: XCTestCase {
 /// Actions whose save suspends, so two overlapping saves exercise the busy guard.
 private final class SlowActions: WorkspaceActions, @unchecked Sendable {
     private(set) var saveCount = 0
-    func snapshotNames() async -> [String] { [] }
-    func save(name: String) async throws {
+    func snapshotNames() async -> [String] {
+        []
+    }
+
+    func save(name _: String) async throws {
         saveCount += 1
         try? await Task.sleep(nanoseconds: 20_000_000)
     }
-    func restore(name: String) async throws -> String { "" }
-    func restoreAuto() async throws -> String { "" }
+
+    func restore(name _: String) async throws -> String {
+        ""
+    }
+
+    func restoreAcrossDesktops(name _: String) async throws -> String {
+        ""
+    }
+
+    func restoreAuto() async throws -> String {
+        ""
+    }
+
+    func delete(name _: String) async throws {}
 }

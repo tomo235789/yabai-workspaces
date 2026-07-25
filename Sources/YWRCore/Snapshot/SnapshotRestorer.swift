@@ -71,7 +71,7 @@ public struct SnapshotRestorer: Sendable {
         // Provision missing Spaces BEFORE planning, so the plan maps windows to
         // the freshly-created (now labeled) Spaces rather than a fallback.
         // Skip when positions-only: we aren't touching Spaces.
-        if createSpaces && !positionsOnly {
+        if createSpaces, !positionsOnly {
             try provisionSpaces(for: snapshot)
         }
 
@@ -80,16 +80,15 @@ public struct SnapshotRestorer: Sendable {
             // Discovery visibly cycles desktops; if it fails (e.g. a Space can't
             // be focused) fall back to the current desktop's windows rather than
             // aborting the whole restore.
-            let currentWindows: [Window]
-            if let discovered = try? desktopWindowDiscovery.discover() {
-                currentWindows = discovered
+            let currentWindows: [Window] = if let discovered = try? desktopWindowDiscovery.discover() {
+                discovered
             } else {
-                currentWindows = try yabai.queryWindows()
+                try yabai.queryWindows()
             }
-            plan = planner.plan(snapshot: snapshot,
-                                currentDisplays: try yabai.queryDisplays(),
-                                currentSpaces: try yabai.querySpaces(),
-                                currentWindows: currentWindows)
+            plan = try planner.plan(snapshot: snapshot,
+                                    currentDisplays: yabai.queryDisplays(),
+                                    currentSpaces: yabai.querySpaces(),
+                                    currentWindows: currentWindows)
         } else {
             plan = try buildPlan(for: snapshot)
         }
@@ -123,12 +122,12 @@ public struct SnapshotRestorer: Sendable {
         // 3. Apply each window step. Capture the live display of each window so
         // that when a Display move is skipped/failed, geometry is resolved
         // against the display the window is ACTUALLY on (not the planned one).
-        let displayFrameByIndex = Dictionary(
-            (try yabai.queryDisplays()).map { ($0.index, $0.frame) },
+        let displayFrameByIndex = try Dictionary(
+            (yabai.queryDisplays()).map { ($0.index, $0.frame) },
             uniquingKeysWith: { a, _ in a }
         )
-        let windowDisplayById = Dictionary(
-            (try yabai.queryWindows()).map { ($0.id, $0.display) },
+        let windowDisplayById = try Dictionary(
+            (yabai.queryWindows()).map { ($0.id, $0.display) },
             uniquingKeysWith: { a, _ in a }
         )
         for step in plan.steps {
@@ -150,7 +149,8 @@ public struct SnapshotRestorer: Sendable {
         // 5. Restore focus to the window that had it at capture time (best
         // effort, done last so it isn't stolen by subsequent moves).
         if let focusedStep = plan.steps.first(where: { $0.saved.focused }),
-           let id = focusedStep.matchedWindowId {
+           let id = focusedStep.matchedWindowId
+        {
             try? yabai.focusWindow(id)
         }
         return report
@@ -180,7 +180,8 @@ public struct SnapshotRestorer: Sendable {
                 let spaces = try yabai.querySpaces()
                 if let target = spaces
                     .filter({ $0.display == request.displayIndex && $0.label.isEmpty })
-                    .max(by: { $0.index < $1.index }) {
+                    .max(by: { $0.index < $1.index })
+                {
                     try yabai.labelSpace(index: target.index, label: request.label)
                 }
             } catch {
@@ -191,7 +192,7 @@ public struct SnapshotRestorer: Sendable {
 
     // MARK: - Execution
 
-    // Implemented via ollama gemma4:31b, reviewed and integrated.
+    /// Implemented via ollama gemma4:31b, reviewed and integrated.
     private func apply(_ step: WindowRestoreStep, positionsOnly: Bool, currentDisplayFrame: Frame?) -> RestoreOutcome {
         guard let id = step.matchedWindowId else {
             return RestoreOutcome(label: step.describedLabel, status: .launchedAndDeferred)
@@ -224,15 +225,14 @@ public struct SnapshotRestorer: Sendable {
 
             try yabai.setFloating(id, step.shouldFloat)
 
-            if step.shouldFloat && !flags.fullscreen {
+            if step.shouldFloat, !flags.fullscreen {
                 // When we didn't move the window to the planned display, resolve
                 // its geometry against the display it's actually on so it lands
                 // on-screen (and doesn't implicitly cross displays).
-                let frame: Frame
-                if degraded, let cdf = currentDisplayFrame {
-                    frame = step.saved.relativeFrame.resolved(on: cdf)
+                let frame: Frame = if degraded, let cdf = currentDisplayFrame {
+                    step.saved.relativeFrame.resolved(on: cdf)
                 } else {
-                    frame = step.targetFrame
+                    step.targetFrame
                 }
                 try yabai.moveWindow(id, toX: frame.x, y: frame.y)
                 try yabai.resizeWindow(id, toW: frame.w, h: frame.h)
@@ -251,11 +251,13 @@ public struct SnapshotRestorer: Sendable {
 
     private func waitForApps(_ apps: [String]) throws {
         var pending = Set(apps)
-        for _ in 0..<launchRetries {
+        for _ in 0 ..< launchRetries {
             guard !pending.isEmpty else { break }
             let windows = try yabai.queryWindows()
             pending = pending.filter { !launcher.isRunning($0, windows: windows) }
-            if pending.isEmpty { break }
+            if pending.isEmpty {
+                break
+            }
             waiter.wait(seconds: launchWaitSeconds)
         }
     }

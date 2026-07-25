@@ -12,7 +12,9 @@ public struct CommandResult: Sendable {
         self.stderr = stderr
     }
 
-    public var succeeded: Bool { exitCode == 0 }
+    public var succeeded: Bool {
+        exitCode == 0
+    }
 }
 
 public enum CommandError: Error, CustomStringConvertible {

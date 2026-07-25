@@ -111,6 +111,21 @@ assert_eq "$(grep -c -- '--remove' "$YWR_E2E_YABAI_LOG")" "3" "signal uninstall 
 "$YWR" snapshot save nat --native >/dev/null 2>&1
 assert_contains "$("$YWR" restore nat 2>&1)" "Native backend" "native snapshot routes to native restore even with yabai up"
 
+# --walk-spaces (dry-run) is accepted and announces the multi-desktop walk
+assert_contains "$("$YWR" restore nat --walk-spaces --dry-run 2>&1)" "Walking desktops" "restore --walk-spaces announces desktop walk"
+
+# snapshot delete removes the JSON and drops it from the list
+"$YWR" snapshot save todelete >/dev/null 2>&1
+assert_file "$XDG_CONFIG_HOME/yabai-workspaces/snapshots/todelete.json" "snapshot to delete exists"
+out="$("$YWR" snapshot delete todelete)"
+assert_contains "$out" "Deleted snapshot 'todelete'" "snapshot delete reports success"
+assert_absent "$("$YWR" snapshot list)" "todelete" "deleted snapshot no longer listed"
+# deleting a missing snapshot fails loudly
+"$YWR" snapshot delete todelete >/dev/null 2>&1; assert_eq "$?" "1" "deleting a missing snapshot exits non-zero"
+# extra positional arg is rejected (a typo must not delete the wrong snapshot)
+"$YWR" snapshot delete home extra >/dev/null 2>&1; assert_eq "$?" "1" "snapshot delete rejects extra args"
+assert_file "$XDG_CONFIG_HOME/yabai-workspaces/snapshots/home.json" "home survives the rejected delete"
+
 # unknown command fails
 "$YWR" bogus >/dev/null 2>&1; assert_eq "$?" "1" "unknown command exits non-zero"
 

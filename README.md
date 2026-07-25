@@ -112,11 +112,20 @@ Without yabai, restore an explicit snapshot by name: `ywr restore home --native`
 ## Menu-bar app
 
 `ywr-menubar` mirrors the CLI in a SwiftUI menu-bar popover: type a name to
-save, click a saved layout to restore it, or hit **Restore (auto)**. Colors and
-fonts come from an external `theme.json`.
+save, **click a saved layout** to restore it (in native mode, on the current
+desktop), use its **▦ button** to restore across **all desktops** (walks Spaces —
+see below), re-save it in place with 🔄, delete one with 🗑 (with a confirmation),
+or hit **Restore (auto)**. Colors and fonts come from an external `theme.json`.
 
 ```sh
 swift run ywr-menubar
+```
+
+If the menu-bar **icon doesn't appear**, run it as a bundled app (macOS shows the
+menu-bar item for a bundled accessory app):
+
+```sh
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
 > Like the CLI, the menu-bar app falls back to the **native backend** when yabai
@@ -149,6 +158,7 @@ swift build                # build the ywr binary
 swift test                 # unit tests (XCTest; needs Xcode)
 bash Tests/e2e/run.sh      # end-to-end: real binary vs. a fake yabai
 bash scripts/report.sh     # → build/report/report.html (results + UI screenshots)
+swift package plugin --allow-writing-to-package-directory swiftformat  # format code
 ```
 
 ## License

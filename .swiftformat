@@ -1,0 +1,10 @@
+# SwiftFormat configuration for yabai-workspaces.
+# Run: swift package plugin --allow-writing-to-package-directory swiftformat
+#
+# Uses SwiftFormat's recommended default rule set (no --rules allow-list), with
+# only project-wide options set below.
+
+--swiftversion 6.0
+--indent 4
+
+--exclude .build,build,scratchpad

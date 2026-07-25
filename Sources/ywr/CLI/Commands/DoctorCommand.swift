@@ -4,7 +4,9 @@ import YWRCore
 struct DoctorCommand: Command {
     let name = "doctor"
     let summary = "Check that yabai and the environment are ready"
-    var usage: String { "ywr doctor" }
+    var usage: String {
+        "ywr doctor"
+    }
 
     private let doctor: Doctor
 
@@ -12,7 +14,7 @@ struct DoctorCommand: Command {
         self.doctor = doctor
     }
 
-    func run(_ args: [String]) throws -> Int32 {
+    func run(_: [String]) throws -> Int32 {
         let report = doctor.run()
         for result in report.results {
             print("\(icon(result.status)) \(result.name): \(result.message)")
@@ -27,9 +29,9 @@ struct DoctorCommand: Command {
 
     private func icon(_ status: CheckStatus) -> String {
         switch status {
-        case .pass: return "✓"
-        case .warn: return "!"
-        case .fail: return "✗"
+        case .pass: "✓"
+        case .warn: "!"
+        case .fail: "✗"
         }
     }
 }

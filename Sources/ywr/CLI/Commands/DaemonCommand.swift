@@ -6,7 +6,9 @@ import YWRCore
 struct DaemonCommand: Command {
     let name = "daemon"
     let summary = "Watch for display changes and auto-restore layouts"
-    var usage: String { "ywr daemon [--interval <seconds>]" }
+    var usage: String {
+        "ywr daemon [--interval <seconds>]"
+    }
 
     private let monitorFactory: (Double) -> DisplayMonitor
 

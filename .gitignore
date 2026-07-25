@@ -33,3 +33,6 @@ Icon?
 /ywr
 *.o
 *.dSYM/
+
+# Module cache produced by sandboxed review tooling (codex/coderabbit)
+/.tmp-clang/

@@ -200,6 +200,27 @@ native バックエンドでできること・制約:
 - ⚠️ **Accessibility 権限**が必須。加えて**画面収録**権限を付与すると、アプリ再起動を
   またぐ際の同名ウィンドウの識別精度が上がります。
 
+**全デスクトップに復元（実験的）。** 公開 API ではウィンドウを別 Space へ*移動*できま
+せんが、そのデスクトップがアクティブなら位置は直せます。そこで `--walk-spaces` は各
+デスクトップを順に切り替え、そこにあるウィンドウを配置していき、一度に複数デスクトップ
+のレイアウトを再現します（終了後は元のデスクトップに戻ります）:
+
+```sh
+ywr restore home --native --walk-spaces
+```
+
+- 画面が**各デスクトップを順に切り替わり**、数秒かかります。
+- ウィンドウは**デスクトップ間を移動しません** — 今いるデスクトップ上で位置だけ直します。
+- **「Mission Control ▸ 操作スペースを左右に移動」のショートカット**（macOS 既定で有効）
+  と Accessibility 権限が必要です。
+- 想定は**spanning 構成**（「ディスプレイごとに個別の操作スペース」OFF）で、1つの Space
+  セットが全ディスプレイにまたがるケースです。個別スペースが ON だと Ctrl+矢印は焦点の
+  あるディスプレイの Space しか動かさないため、その構成では **yabai バックエンド**を使って
+  ください。
+- メニューバーアプリでは各スナップショット横の **▦ ボタン**がこれ。native モードでは名前を
+  普通にクリックすると**現在の**デスクトップだけ復元し、yabai バックエンドでは名前クリックで
+  各ウィンドウを保存時の Space/ディスプレイへ直接復元します。
+
 ---
 
 ## 7. メニューバーアプリ
@@ -210,6 +231,21 @@ CLI と同じ操作（保存・自動復元）を GUI から行えるメニュ�
 ```sh
 swift run ywr-menubar
 ```
+
+**メニューバーにアイコンが出ない場合**は、`.app` バンドルとして起動してください。
+macOS はバンドル化された常駐（LSUIElement）アプリのメニューバー項目を確実に表示します。
+
+`build/YabaiWorkspaces.app` を生成して開きます（メニューバーに ▤ アイコンが出ます）:
+
+```sh
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
+```
+
+初回起動時にアプリが **アクセシビリティ**（ウィンドウ移動に必須）と **画面収録**
+（任意・タイトル取得でマッチ精度向上）の権限を要求し、システム設定 ▸ プライバシーと
+セキュリティ に自動登録されます。そこで「yabai workspaces」の **アクセシビリティ**を
+ON にしてください。再ビルド後に移動が効かなくなった場合は、**古い項目を −（削除）して
+から再追加**してください（再ビルドで以前の許可は失効します）。
 
 ### 配色・フォントの変更
 
@@ -254,11 +290,13 @@ swift run ywr-menubar
 | `ywr doctor` | yabai と環境をチェック |
 | `ywr snapshot save <name>` | 現在の配置を保存 |
 | `ywr snapshot list` | 保存済み一覧 |
+| `ywr snapshot delete <name>` | 保存済みスナップショットを削除 |
 | `ywr restore <name>` | 復元 |
 | `ywr restore <name> --dry-run` | 復元内容をプレビュー |
 | `ywr restore --auto` | 現構成に一致する snapshot を自動選択して復元 |
 | `ywr restore <name> --create-spaces` | 不足 Space を作成してから復元 |
 | `ywr restore <name> --positions-only` | Space/Display 移動なし、位置・サイズのみ復元 |
+| `ywr restore <name> --native --walk-spaces` | 全デスクトップに復元（Space を巡回） |
 | `ywr snapshot save <name> --native` / `ywr restore <name> --native` | yabai を使わず位置・サイズを保存/復元 |
 | `ywr profile capture <name>` | ディスプレイ構成を記録 |
 | `ywr profile list` | プロファイル一覧 |

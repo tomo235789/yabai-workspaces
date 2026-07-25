@@ -1,28 +1,28 @@
 import Foundation
 
-// Implemented via ollama qwen3-coder-next, reviewed and integrated.
-//
-// ROADMAP / PoC: a yabai-independent window backend. This pure mapper turns raw
-// CGWindowList output into `[Window]` so the enumeration logic is testable
-// without CoreGraphics. The actual CGWindowListCopyWindowInfo call and the
-// AXUIElement move/resize live in the platform layer (need Accessibility /
-// screen-recording permission and a GUI session, so they're verified on device).
+/// Implemented via ollama qwen3-coder-next, reviewed and integrated.
+///
+/// ROADMAP / PoC: a yabai-independent window backend. This pure mapper turns raw
+/// CGWindowList output into `[Window]` so the enumeration logic is testable
+/// without CoreGraphics. The actual CGWindowListCopyWindowInfo call and the
+/// AXUIElement move/resize live in the platform layer (need Accessibility /
+/// screen-recording permission and a GUI session, so they're verified on device).
 public enum NativeWindowMapper {
     private static func doubleValue(from value: Any) -> Double? {
         switch value {
-        case let num as NSNumber: return num.doubleValue
-        case let val as Double: return val
-        case let val as Int: return Double(val)
-        default: return nil
+        case let num as NSNumber: num.doubleValue
+        case let val as Double: val
+        case let val as Int: Double(val)
+        default: nil
         }
     }
 
     private static func intValue(from value: Any) -> Int? {
         switch value {
-        case let num as NSNumber: return num.intValue
-        case let val as Int: return val
-        case let val as Double: return Int(val)
-        default: return nil
+        case let num as NSNumber: num.intValue
+        case let val as Int: val
+        case let val as Double: Int(val)
+        default: nil
         }
     }
 
@@ -52,7 +52,9 @@ public enum NativeWindowMapper {
             guard layer == 0 else { continue }
 
             // Keep only regular GUI apps' windows when a filter is provided.
-            if let regularAppPIDs, !regularAppPIDs.contains(pid) { continue }
+            if let regularAppPIDs, !regularAppPIDs.contains(pid) {
+                continue
+            }
 
             guard let ownerName = ownerNameRaw as? String, !ownerName.isEmpty else {
                 continue

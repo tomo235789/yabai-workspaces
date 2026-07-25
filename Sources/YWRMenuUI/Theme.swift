@@ -11,7 +11,7 @@ extension Color {
 
     static func fromHex(_ hex: String, fallback: Color = .gray) -> Color {
         do {
-            return Color(try HexColor.parse(hex))
+            return try Color(HexColor.parse(hex))
         } catch {
             return fallback
         }
@@ -26,14 +26,37 @@ public struct Theme {
         self.config = config
     }
 
-    public var accent: Color { Color.fromHex(config.colors.accent) }
-    public var background: Color { Color.fromHex(config.colors.background) }
-    public var surface: Color { Color.fromHex(config.colors.surface) }
-    public var textPrimary: Color { Color.fromHex(config.colors.textPrimary) }
-    public var textSecondary: Color { Color.fromHex(config.colors.textSecondary) }
-    public var success: Color { Color.fromHex(config.colors.success) }
-    public var warning: Color { Color.fromHex(config.colors.warning) }
-    public var error: Color { Color.fromHex(config.colors.error) }
+    public var accent: Color {
+        Color.fromHex(config.colors.accent)
+    }
+
+    public var background: Color {
+        Color.fromHex(config.colors.background)
+    }
+
+    public var surface: Color {
+        Color.fromHex(config.colors.surface)
+    }
+
+    public var textPrimary: Color {
+        Color.fromHex(config.colors.textPrimary)
+    }
+
+    public var textSecondary: Color {
+        Color.fromHex(config.colors.textSecondary)
+    }
+
+    public var success: Color {
+        Color.fromHex(config.colors.success)
+    }
+
+    public var warning: Color {
+        Color.fromHex(config.colors.warning)
+    }
+
+    public var error: Color {
+        Color.fromHex(config.colors.error)
+    }
 
     public var bodyFont: Font {
         let font: Font = config.font.family == "System"

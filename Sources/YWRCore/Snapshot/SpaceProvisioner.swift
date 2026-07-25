@@ -18,7 +18,7 @@ public struct SpaceProvisioner: Sendable {
 
     public func requests(savedSpaces: [SpaceSnapshot], currentSpaces: [Space], displayMap: [Int: Int]) -> [SpaceProvisionRequest] {
         var seenLabels = Set<String>()
-        let existingLabels = Set(currentSpaces.map { $0.label })
+        let existingLabels = Set(currentSpaces.map(\.label))
 
         return savedSpaces.compactMap { saved in
             let label = saved.label

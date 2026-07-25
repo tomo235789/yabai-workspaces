@@ -110,11 +110,19 @@ yabai 無しの場合は、名前を指定して復元してください: `ywr r
 ## メニューバーアプリ
 
 `ywr-menubar` は CLI と同じ操作を SwiftUI のメニューバーで提供します。名前を入力して
-保存、保存済みをクリックして復元、または **Restore (auto)**。配色・フォントは外部の
-`theme.json` で指定します。
+保存、**名前をクリック**で復元（native モードでは現在のデスクトップ）、**▦ ボタン**で
+**全デスクトップ**に復元（Space を巡回。下記参照）、🔄 でその場に上書き保存、🗑 で削除
+（確認あり）、または **Restore (auto)**。配色・フォントは外部の `theme.json` で指定します。
 
 ```sh
 swift run ywr-menubar
+```
+
+**アイコンが表示されない**場合は、`.app` バンドルとして起動してください（macOS は
+バンドル化した常駐アプリのメニューバー項目を確実に表示します）:
+
+```sh
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
 > CLI と同様に、メニューバーアプリも yabai 未起動時は **native バックエンド**へ自動
@@ -147,6 +155,7 @@ swift build                # ywr バイナリをビルド
 swift test                 # 単体テスト（XCTest; Xcode 必要）
 bash Tests/e2e/run.sh      # e2e: 実バイナリ vs 偽 yabai
 bash scripts/report.sh     # → build/report/report.html（結果 + UI スクショ）
+swift package plugin --allow-writing-to-package-directory swiftformat  # 整形
 ```
 
 ## ライセンス

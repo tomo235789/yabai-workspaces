@@ -20,10 +20,10 @@ public enum SignalError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .installFailed(let event, let detail):
-            return "Failed to install yabai signal for event '\(event)': \(detail)"
-        case .removeFailed(let label, let detail):
-            return "Failed to remove yabai signal '\(label)': \(detail)"
+        case let .installFailed(event, detail):
+            "Failed to install yabai signal for event '\(event)': \(detail)"
+        case let .removeFailed(label, detail):
+            "Failed to remove yabai signal '\(label)': \(detail)"
         }
     }
 }
@@ -56,7 +56,7 @@ public struct SignalInstaller: Sendable {
                 "--add",
                 "event=\(def.event)",
                 "action=\(ywrInvocation)",
-                "label=\(def.label)"
+                "label=\(def.label)",
             ]
             let result = try runner.run(executable, args)
             if !result.succeeded {
@@ -92,6 +92,6 @@ public struct SignalInstaller: Sendable {
     }
 
     public func installedLabels() -> [String] {
-        definitions.map { $0.label }
+        definitions.map(\.label)
     }
 }

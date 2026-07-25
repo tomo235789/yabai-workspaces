@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// The menu-bar popover content. Actions are fired inside a `Task` so the async
 /// view-model methods run without blocking the main actor.
@@ -9,6 +9,8 @@ public struct MenuContentView: View {
     /// SwiftUI's `TextField` doesn't rasterize cleanly through `ImageRenderer`,
     /// so the screenshot tool asks for a static, display-only field instead.
     private let staticField: Bool
+    /// Name awaiting delete confirmation (deletion is destructive → confirm first).
+    @State private var pendingDelete: String?
 
     public init(model: MenuViewModel, theme: Theme, staticField: Bool = false) {
         self.model = model
@@ -38,25 +40,56 @@ public struct MenuContentView: View {
                 .disabled(model.isBusy)
 
             if !model.snapshots.isEmpty {
-                Text("Saved — click to restore:")
+                Text("Saved — click a name to restore, ▦ to restore across all desktops:")
                     .font(theme.bodyFont)
                     .foregroundColor(theme.textSecondary)
 
                 ForEach(model.snapshots, id: \.self) { name in
-                    Button { Task { await model.restore(name: name) } } label: {
-                        HStack {
+                    HStack(spacing: 8) {
+                        // Clicking the name restores it (the header says so) — no
+                        // separate "Restore" label needed.
+                        Button { Task { await model.restore(name: name) } } label: {
                             Text(name)
                                 .font(theme.bodyFont)
                                 .foregroundColor(theme.textPrimary)
-                            Spacer()
-                            Text("Restore")
-                                .font(theme.bodyFont)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+
+                        // Restore across ALL desktops: walks Spaces so windows on
+                        // other desktops are placed too (flips the screen). Kept
+                        // separate from the quick current-desktop click above.
+                        Button { Task { await model.restoreAcrossDesktops(name: name) } } label: {
+                            Image(systemName: "square.grid.2x2")
                                 .foregroundColor(theme.accent)
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Restore '\(name)' across all desktops")
+                        .accessibilityLabel("Restore \(name) across all desktops")
+
+                        // One-click overwrite: re-save the current layout into this
+                        // existing name without retyping it into the field.
+                        Button { Task { await model.overwrite(name: name) } } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Overwrite '\(name)' with the current layout")
+                        .accessibilityLabel("Overwrite \(name) with the current layout")
+
+                        Button { pendingDelete = name } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(theme.error)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(model.isBusy)
+                        .help("Delete '\(name)'")
+                        .accessibilityLabel("Delete \(name)")
                     }
-                    .buttonStyle(.plain)
-                    .disabled(model.isBusy)
                 }
             }
 
@@ -78,6 +111,20 @@ public struct MenuContentView: View {
         .frame(minWidth: 250)
         .background(theme.background)
         .onAppear { Task { await model.refresh() } }
+        .confirmationDialog(
+            "Delete snapshot \"\(pendingDelete ?? "")\"?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: {
+                if !$0 {
+                    pendingDelete = nil
+                }
+            }),
+            titleVisibility: .visible
+        ) {
+            if let name = pendingDelete {
+                Button("Delete", role: .destructive) { Task { await model.delete(name: name) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     @ViewBuilder

@@ -23,7 +23,7 @@ public struct Display: Codable, Equatable, Sendable {
         self.hasFocus = hasFocus
     }
 
-    // `has-focus` is absent from some yabai builds; default it rather than fail.
+    /// `has-focus` is absent from some yabai builds; default it rather than fail.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(Int.self, forKey: .id)

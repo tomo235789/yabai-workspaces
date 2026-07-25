@@ -24,6 +24,11 @@ public struct YabaiAvailability: YabaiAvailabilityChecking {
 
 public struct FixedYabaiAvailability: YabaiAvailabilityChecking {
     private let available: Bool
-    public init(_ available: Bool) { self.available = available }
-    public func isAvailable() -> Bool { available }
+    public init(_ available: Bool) {
+        self.available = available
+    }
+
+    public func isAvailable() -> Bool {
+        available
+    }
 }

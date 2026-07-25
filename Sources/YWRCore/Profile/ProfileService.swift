@@ -30,8 +30,8 @@ public enum ProfileStoreError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .notFound(let name):
-            return "profile '\(name)' not found"
+        case let .notFound(name):
+            "profile '\(name)' not found"
         }
     }
 }
@@ -99,7 +99,7 @@ public struct ProfileCapturer: ProfileCapturing {
 
     public init(yabai: YabaiQuerying, fingerprint: FingerprintGenerating = DefaultFingerprintGenerator()) {
         self.yabai = yabai
-        self.fingerprintGenerator = fingerprint
+        fingerprintGenerator = fingerprint
     }
 
     public func capture(name: String, at date: Date) throws -> CapturedProfile {

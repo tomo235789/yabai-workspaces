@@ -13,7 +13,9 @@ public protocol SpaceModeDetecting: Sendable {
 public struct MacOSSpaceModeDetector: SpaceModeDetecting {
     private let runner: CommandRunner
 
-    public init(runner: CommandRunner) { self.runner = runner }
+    public init(runner: CommandRunner) {
+        self.runner = runner
+    }
 
     public func detect() -> SpaceMode {
         guard let result = try? runner.run("defaults", ["read", "com.apple.spaces", "spans-displays"]),
@@ -28,6 +30,11 @@ public struct MacOSSpaceModeDetector: SpaceModeDetecting {
 
 public struct FixedSpaceModeDetector: SpaceModeDetecting {
     private let mode: SpaceMode
-    public init(_ mode: SpaceMode) { self.mode = mode }
-    public func detect() -> SpaceMode { mode }
+    public init(_ mode: SpaceMode) {
+        self.mode = mode
+    }
+
+    public func detect() -> SpaceMode {
+        mode
+    }
 }

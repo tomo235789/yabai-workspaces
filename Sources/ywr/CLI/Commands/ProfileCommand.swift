@@ -6,7 +6,9 @@ import YWRCore
 struct ProfileCommand: Command {
     let name = "profile"
     let summary = "Capture or list display profiles"
-    var usage: String { "ywr profile <capture|list> [name]" }
+    var usage: String {
+        "ywr profile <capture|list> [name]"
+    }
 
     private let capturer: ProfileCapturing
     private let store: ProfileStore

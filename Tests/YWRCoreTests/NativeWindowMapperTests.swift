@@ -3,15 +3,18 @@ import XCTest
 
 final class NativeWindowMapperTests: XCTestCase {
     private func entry(id: Any, pid: Any = 100, owner: Any = "Code", title: String? = "proj",
-                       layer: Any = 0, x: Any = 10, y: Any = 20, w: Any = 300, h: Any = 400) -> [String: Any] {
+                       layer: Any = 0, x: Any = 10, y: Any = 20, w: Any = 300, h: Any = 400) -> [String: Any]
+    {
         var d: [String: Any] = [
             "kCGWindowNumber": id,
             "kCGWindowOwnerPID": pid,
             "kCGWindowOwnerName": owner,
             "kCGWindowLayer": layer,
-            "kCGWindowBounds": ["X": x, "Y": y, "Width": w, "Height": h]
+            "kCGWindowBounds": ["X": x, "Y": y, "Width": w, "Height": h],
         ]
-        if let title { d["kCGWindowName"] = title }
+        if let title {
+            d["kCGWindowName"] = title
+        }
         return d
     }
 

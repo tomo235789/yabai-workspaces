@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Renders the menu-bar UI to a PNG without a GUI session, using SwiftUI's
 /// `ImageRenderer`. This is what lets the test/report tooling capture real
@@ -17,7 +17,8 @@ public enum MenuRenderer {
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),
-              let png = rep.representation(using: .png, properties: [:]) else {
+              let png = rep.representation(using: .png, properties: [:])
+        else {
             return nil
         }
         return png
