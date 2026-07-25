@@ -9,6 +9,12 @@ import CoreGraphics
 // positions-only — the public macOS APIs can't assign windows to Spaces/Displays.
 
 public struct NativeCapturer {
+    /// Marks a snapshot as captured by the native backend (no Spaces/Displays,
+    /// geometry only). Restore uses this to route such snapshots to the native
+    /// restorer even if yabai is available, since the yabai planner can't resolve
+    /// their zeroed relativeFrame / empty display profile.
+    public static let nativeFingerprint = "native"
+
     private let enumerator: NativeWindowEnumerating
 
     public init(enumerator: NativeWindowEnumerating) {
@@ -35,7 +41,7 @@ public struct NativeCapturer {
             version: Snapshot.currentVersion,
             name: name,
             capturedAt: date,
-            displayProfile: DisplayProfile(fingerprint: "native", displays: []),
+            displayProfile: DisplayProfile(fingerprint: Self.nativeFingerprint, displays: []),
             spaces: [],
             windows: mappedWindows
         )
