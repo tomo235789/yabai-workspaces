@@ -173,9 +173,10 @@ swift run ywr-menubar
 **If the menu-bar icon doesn't appear**, launch it as an `.app` bundle — macOS
 reliably shows the menu-bar item for a bundled LSUIElement (accessory) app:
 
+Build `build/YabaiWorkspaces.app` and open it (the ▤ icon appears in the menu bar):
+
 ```sh
-bash scripts/make-menubar-app.sh          # builds build/YabaiWorkspaces.app
-open build/YabaiWorkspaces.app            # the ▤ icon appears in the menu bar
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
 Grant **Accessibility** permission to "yabai workspaces" the first time (System

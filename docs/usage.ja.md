@@ -214,9 +214,10 @@ swift run ywr-menubar
 **メニューバーにアイコンが出ない場合**は、`.app` バンドルとして起動してください。
 macOS はバンドル化された常駐（LSUIElement）アプリのメニューバー項目を確実に表示します。
 
+`build/YabaiWorkspaces.app` を生成して開きます（メニューバーに ▤ アイコンが出ます）:
+
 ```sh
-bash scripts/make-menubar-app.sh          # build/YabaiWorkspaces.app を生成
-open build/YabaiWorkspaces.app            # メニューバーに ▤ アイコンが出る
+bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
 初回は「yabai workspaces」に **Accessibility 権限**を付与してください（システム設定 ▸
