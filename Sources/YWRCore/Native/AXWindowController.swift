@@ -1,12 +1,8 @@
 import Foundation
 import ApplicationServices
 import CoreGraphics
+import AppKit
 
-// Implemented via ollama qwen3-coder-next, reviewed and integrated with fixes:
-//   - removed CFRelease (Swift/ARC manages CoreFoundation lifetimes),
-//   - build real CGPoint/CGSize values for AXValueCreate (the draft passed a
-//     Double pointer, which is invalid and won't compile on a `let` frame).
-//
 // Robust native mover: targets a window by its CGWindowID (stable within a
 // session) via the private `_AXUIElementGetWindow`, so it's independent of
 // window titles (which need Screen Recording permission). Enables the AX tree
@@ -35,24 +31,16 @@ public enum AXWindowError: Error, CustomStringConvertible {
 
 public protocol NativeWindowControlling: Sendable {
     func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws
+    /// Brings the window to the front (within its app) and activates the app.
+    /// Called back-to-front during restore to reproduce the saved stacking order.
+    func raise(pid: Int, windowID: UInt32) throws
 }
 
 public struct AXWindowController: NativeWindowControlling {
     public init() {}
 
     public func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
-        let app = AXUIElementCreateApplication(pid_t(pid))
-
-        // Electron/Chromium apps only expose their AX window tree once this is set.
-        _ = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-
-        guard let windows = copyWindows(app), !windows.isEmpty else {
-            throw AXWindowError.appHasNoWindows(pid: pid)
-        }
-
-        guard let window = windows.first(where: { cgWindowID(of: $0) == windowID }) else {
-            throw AXWindowError.windowNotFound(pid: pid, windowID: windowID)
-        }
+        let window = try resolveWindow(pid: pid, windowID: windowID)
 
         var point = CGPoint(x: frame.x, y: frame.y)
         guard let positionValue = AXValueCreate(.cgPoint, &point) else {
@@ -69,6 +57,29 @@ public struct AXWindowController: NativeWindowControlling {
         if AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) != .success {
             throw AXWindowError.setFailed("size")
         }
+    }
+
+    public func raise(pid: Int, windowID: UInt32) throws {
+        let window = try resolveWindow(pid: pid, windowID: windowID)
+        _ = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+        // Activating the app in back-to-front order builds up global z-order.
+        NSRunningApplication(processIdentifier: pid_t(pid))?.activate()
+    }
+
+    // MARK: - Helpers
+
+    private func resolveWindow(pid: Int, windowID: UInt32) throws -> AXUIElement {
+        let app = AXUIElementCreateApplication(pid_t(pid))
+        // Electron/Chromium apps only expose their AX window tree once this is set.
+        _ = AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+
+        guard let windows = copyWindows(app), !windows.isEmpty else {
+            throw AXWindowError.appHasNoWindows(pid: pid)
+        }
+        guard let window = windows.first(where: { cgWindowID(of: $0) == windowID }) else {
+            throw AXWindowError.windowNotFound(pid: pid, windowID: windowID)
+        }
+        return window
     }
 
     private func copyWindows(_ app: AXUIElement) -> [AXUIElement]? {

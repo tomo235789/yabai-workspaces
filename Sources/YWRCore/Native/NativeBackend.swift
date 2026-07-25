@@ -56,6 +56,8 @@ public struct NativeRestorer {
     public func restore(_ snapshot: Snapshot) -> RestoreReport {
         var available = enumerator.enumerate()
         var outcomes: [RestoreOutcome] = []
+        // Matched (pid, windowID) in saved order (front-to-back) for z-ordering.
+        var placed: [(pid: Int, windowID: UInt32)] = []
 
         for saved in snapshot.windows {
             let label = "\(saved.app) — \(saved.title.isEmpty ? "(untitled)" : saved.title)"
@@ -64,6 +66,7 @@ public struct NativeRestorer {
                 available.removeAll { $0.id == match.id }
                 do {
                     try controller.setFrame(pid: match.pid, windowID: CGWindowID(match.id), to: saved.frame)
+                    placed.append((pid: match.pid, windowID: CGWindowID(match.id)))
                     outcomes.append(RestoreOutcome(label: label, status: .movedPositionsOnly))
                 } catch {
                     outcomes.append(RestoreOutcome(label: label, status: .failed(reason: "\(error)")))
@@ -71,6 +74,14 @@ public struct NativeRestorer {
             } else {
                 outcomes.append(RestoreOutcome(label: label, status: .unmatched))
             }
+        }
+
+        // Bring only the previously-frontmost window back to the front (saved
+        // order is front-to-back, so `placed.first` was frontmost). Raising just
+        // the one window avoids activating every app in turn. Best-effort — must
+        // not turn a successful move into a failure.
+        if let front = placed.first {
+            try? controller.raise(pid: front.pid, windowID: front.windowID)
         }
 
         return RestoreReport(outcomes: outcomes)

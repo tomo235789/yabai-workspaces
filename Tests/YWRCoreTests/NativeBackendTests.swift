@@ -10,11 +10,15 @@ private final class FakeEnumerator: NativeWindowEnumerating, @unchecked Sendable
 private final class FakeController: NativeWindowControlling, @unchecked Sendable {
     struct Call: Equatable { let pid: Int; let windowID: UInt32; let frame: Frame }
     private(set) var calls: [Call] = []
+    private(set) var raiseOrder: [UInt32] = []
     var failForPids: Set<Int> = []
     struct Boom: Error {}
     func setFrame(pid: Int, windowID: UInt32, to frame: Frame) throws {
         if failForPids.contains(pid) { throw Boom() }
         calls.append(Call(pid: pid, windowID: windowID, frame: frame))
+    }
+    func raise(pid: Int, windowID: UInt32) throws {
+        raiseOrder.append(windowID)
     }
 }
 
@@ -54,6 +58,31 @@ final class NativeBackendTests: XCTestCase {
         XCTAssertEqual(controller.calls[0].pid, 555)          // uses the LIVE pid
         XCTAssertEqual(controller.calls[0].frame, Frame(x: 10, y: 0, w: 300, h: 100))
         _ = snap
+    }
+
+    func testRestoreRaisesOnlyThePreviouslyFrontmostWindow() {
+        // Saved order is front-to-back [10, 20, 30]; only the frontmost (10)
+        // should be raised, avoiding activating every app.
+        let live = [
+            liveWindow(10, app: "A", title: "1", pid: 1),
+            liveWindow(20, app: "B", title: "2", pid: 2),
+            liveWindow(30, app: "C", title: "3", pid: 3)
+        ]
+        let controller = FakeController()
+        let restorer = NativeRestorer(enumerator: FakeEnumerator(live), controller: controller)
+        let saved: [WindowSnapshot] = [10, 20, 30].map { id in
+            WindowSnapshot(app: String(UnicodeScalar(64 + id / 10)!), title: String(id / 10),
+                           role: "AXWindow", pid: id / 10, space: 0, display: 0,
+                           frame: Frame(x: 0, y: 0, w: 100, h: 100),
+                           relativeFrame: RelativeFrame(x: 0, y: 0, w: 0, h: 0),
+                           flags: WindowFlags(floating: true, sticky: false, minimized: false, fullscreen: false))
+        }
+        let snap = Snapshot(name: "n", capturedAt: Date(),
+                            displayProfile: DisplayProfile(fingerprint: "native", displays: []),
+                            spaces: [], windows: saved)
+
+        _ = restorer.restore(snap)
+        XCTAssertEqual(controller.raiseOrder, [10])
     }
 
     func testRestoreReportsUnmatchedAndFailures() {
