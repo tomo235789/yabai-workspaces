@@ -12,7 +12,6 @@ public protocol WorkspaceActions: Sendable {
     /// heavier "all desktops" path, kept separate from the quick current-desktop
     /// restore since it flips the screen.
     func restoreAcrossDesktops(name: String) async throws -> String
-    func restoreAuto() async throws -> String
     func delete(name: String) async throws
 }
 
@@ -36,10 +35,6 @@ public struct StubActions: WorkspaceActions {
     }
 
     public func restoreAcrossDesktops(name _: String) async throws -> String {
-        restoreResult
-    }
-
-    public func restoreAuto() async throws -> String {
         restoreResult
     }
 

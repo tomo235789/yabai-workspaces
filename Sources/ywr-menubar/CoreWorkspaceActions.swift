@@ -8,11 +8,9 @@ import YWRMenuUI
 /// menu-bar UI stays responsive. The UI depends only on the `WorkspaceActions`
 /// abstraction (Dependency Inversion).
 actor CoreWorkspaceActions: WorkspaceActions {
-    private let yabai: YabaiClient
     private let store: FileSnapshotStore
     private let capturer: SnapshotCapturer
     private let restorer: SnapshotRestorer
-    private let autoSelector: AutoSelector
     private let availability: YabaiAvailability
     private let nativeCapturer: NativeCapturer
     private let nativeRestorer: NativeRestorer
@@ -23,11 +21,9 @@ actor CoreWorkspaceActions: WorkspaceActions {
         let runner = ProcessCommandRunner()
         let paths = Paths()
         let client = YabaiClient(runner: runner)
-        yabai = client
         store = FileSnapshotStore(paths: paths)
         capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
         restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
-        autoSelector = AutoSelector()
         availability = YabaiAvailability(runner: runner)
         let nativeEnumerator = CGWindowEnumerator()
         let nativeController = AXWindowController()
@@ -123,23 +119,5 @@ actor CoreWorkspaceActions: WorkspaceActions {
 
     func delete(name: String) async throws {
         try store.delete(name: name)
-    }
-
-    func restoreAuto() async throws -> String {
-        guard availability.isAvailable() else {
-            return "Auto-restore needs yabai. Click a saved layout to restore it."
-        }
-        let displays = try yabai.queryDisplays()
-        let snapshots = try store.loadAll()
-        switch autoSelector.select(from: snapshots, currentDisplays: displays) {
-        case let .confident(scored):
-            let report = try restorer.restore(scored.snapshot)
-            return "Restored '\(scored.snapshot.name)': \(report.moved.count) moved, \(report.failures.count) failed"
-        case let .ambiguous(candidates):
-            let names = candidates.map(\.snapshot.name).joined(separator: ", ")
-            return "Ambiguous — pick manually. Candidates: \(names)"
-        case .none:
-            return "No snapshot matches the current displays"
-        }
     }
 }

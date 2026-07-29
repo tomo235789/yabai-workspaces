@@ -93,26 +93,12 @@ flowchart LR
 `--native` を付ければいつでも native を強制できます
 （例: `ywr restore home --native`）。
 
-## 自動復元
-
-ディスプレイ構成が変わったら自動で復元 — 好みの方式を選べます。
-**これらは yabai バックエンド専用**です（yabai のディスプレイ情報/イベントを使うため、
-yabai 無しの native 構成では使えません）:
-
-```sh
-ywr restore --auto        # 現在の構成に一致する snapshot を自動選択
-ywr daemon                # ディスプレイ変更を監視して自動復元（ポーリング）
-ywr signal install        # yabai のイベントで復元を発火（デーモン不要）
-```
-
-yabai 無しの場合は、名前を指定して復元してください: `ywr restore home --native`。
-
 ## メニューバーアプリ
 
 `ywr-menubar` は CLI と同じ操作を SwiftUI のメニューバーで提供します。名前を入力して
 保存、**名前をクリック**で復元（native モードでは現在のデスクトップ）、**▦ ボタン**で
 **全デスクトップ**に復元（Space を巡回。下記参照）、🔄 でその場に上書き保存、🗑 で削除
-（確認あり）、または **Restore (auto)**。配色・フォントは外部の `theme.json` で指定します。
+（確認あり）。配色・フォントは外部の `theme.json` で指定します。
 
 ```sh
 swift run ywr-menubar
@@ -126,7 +112,7 @@ bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
 > CLI と同様に、メニューバーアプリも yabai 未起動時は **native バックエンド**へ自動
-> フォールバックします（保存・クリック復元は動作。**Restore (auto)** は yabai が必要）。
+> フォールバックします（保存・クリック復元は動作）。
 
 ## ドキュメント
 

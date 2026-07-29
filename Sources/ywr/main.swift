@@ -17,14 +17,50 @@ let restorer = SnapshotRestorer(yabai: yabai, launcher: launcher)
 let profileStore = FileProfileStore(paths: paths)
 let profileCapturer = ProfileCapturer(yabai: yabai)
 
-// Native (yabai-independent) backend for configurations where yabai can't run.
+/// Native (yabai-independent) backend for configurations where yabai can't run.
 let availability = YabaiAvailability(runner: runner)
+
+/// One-time migration: earlier versions could register yabai signals that ran the
+/// now-removed `restore --auto` on display changes. When yabai is reachable, remove
+/// any such stale registrations (best-effort; a missing label is fine) and record
+/// that cleanup is done. If yabai is down we skip WITHOUT marking and retry on a
+/// later run — stale signals only fire while yabai runs, so deferring is harmless.
+/// The marker check short-circuits before the availability probe once migrated.
+let signalsMigratedMarker = paths.root.appendingPathComponent(".signals-migrated")
+/// Which of our signal labels yabai still has registered. Returns nil when yabai's
+/// signal list can't be read (transient failure) so we defer rather than guess.
+let remainingYWRSignals: () -> [String]? = {
+    let labels = ["ywr_display_added", "ywr_display_removed", "ywr_display_moved"]
+    guard let result = try? runner.run("yabai", ["-m", "signal", "--list"]), result.succeeded,
+          let data = result.stdout.data(using: .utf8),
+          let entries = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]]
+    else {
+        return nil
+    }
+    let registered = entries.compactMap { $0["label"] as? String }
+    return labels.filter(registered.contains)
+}
+
+if !FileManager.default.fileExists(atPath: signalsMigratedMarker.path), availability.isAvailable() {
+    if let remaining = remainingYWRSignals() {
+        for label in remaining {
+            _ = try? runner.run("yabai", ["-m", "signal", "--remove", label])
+        }
+        // Record success only once every stale signal is confirmed gone, so a
+        // transient removal failure is retried on a later run instead of skipped.
+        if remainingYWRSignals()?.isEmpty == true {
+            try? FileManager.default.createDirectory(at: paths.root, withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: signalsMigratedMarker.path, contents: nil)
+        }
+    }
+}
+
 let nativeEnumerator = CGWindowEnumerator()
 let nativeController = AXWindowController()
 let nativeCapturer = NativeCapturer(enumerator: nativeEnumerator)
 let nativeRestorer = NativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
-// Experimental multi-desktop restore: walks Spaces so windows on other desktops
-// are repositioned too (opt-in via `restore --walk-spaces`).
+/// Experimental multi-desktop restore: walks Spaces so windows on other desktops
+/// are repositioned too (opt-in via `restore --walk-spaces`).
 let nativeWalker = WalkingNativeRestorer(enumerator: nativeEnumerator, controller: nativeController)
 
 let doctor = Doctor(checks: [
@@ -34,33 +70,11 @@ let doctor = Doctor(checks: [
     MacOSSettingsNoticeCheck(),
 ])
 
-// Daemon: watch for display changes and auto-restore. The handler restores via
-// the shared `restorer`; the monitor's poll interval is supplied per-invocation.
-let autoRestoreHandler = AutoRestoreHandler(
-    yabai: yabai,
-    store: store,
-    restore: { try restorer.restore($0) }
-)
-let daemonFactory: (Double) -> DisplayMonitor = { interval in
-    DisplayMonitor(
-        watcher: DisplayWatcher(yabai: yabai),
-        handler: autoRestoreHandler,
-        pollInterval: interval
-    )
-}
-
-// Signal integration: yabai runs THIS binary's `restore --auto` on display
-// events. Resolve an absolute path so the action works regardless of yabai's PATH.
-let ywrPath = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().path
-let signalInstaller = SignalInstaller(runner: runner, ywrInvocation: "\(ywrPath) restore --auto")
-
 let registry = CommandRegistry(commands: [
     DoctorCommand(doctor: doctor),
     SnapshotCommand(capturer: capturer, nativeCapturer: nativeCapturer, availability: availability, store: store),
-    RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, nativeWalker: nativeWalker, availability: availability, yabai: yabai),
+    RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, nativeWalker: nativeWalker, availability: availability),
     ProfileCommand(capturer: profileCapturer, store: profileStore),
-    DaemonCommand(monitorFactory: daemonFactory),
-    SignalCommand(installer: signalInstaller),
 ])
 
 let exitCode = registry.run(Array(CommandLine.arguments.dropFirst()))

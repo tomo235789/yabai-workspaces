@@ -72,17 +72,6 @@ public final class MenuViewModel: ObservableObject {
         }
     }
 
-    public func restoreAuto() async {
-        guard !isBusy else { return } // ignore re-entrant taps while working
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            status = try await actions.restoreAuto()
-        } catch {
-            status = "Restore failed: \(error)"
-        }
-    }
-
     /// Re-save the current layout into an existing snapshot name — the one-click
     /// "overwrite" path so you don't have to retype the name into the field.
     public func overwrite(name: String) async {

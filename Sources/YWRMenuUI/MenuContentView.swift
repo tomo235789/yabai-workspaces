@@ -33,12 +33,6 @@ public struct MenuContentView: View {
                     .disabled(model.isBusy)
             }
 
-            Button("Restore (auto)") { Task { await model.restoreAuto() } }
-                .buttonStyle(.bordered)
-                .tint(theme.accent)
-                .font(theme.bodyFont)
-                .disabled(model.isBusy)
-
             if !model.snapshots.isEmpty {
                 Text("Saved — click a name to restore, ▦ to restore across all desktops:")
                     .font(theme.bodyFont)

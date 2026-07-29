@@ -96,17 +96,6 @@ out="$("$YWR" profile capture home)"
 assert_contains "$out" "2 display(s)" "profile capture reports displays"
 assert_file "$XDG_CONFIG_HOME/yabai-workspaces/profiles/home.json" "profile JSON written"
 
-# restore --auto picks the matching snapshot
-assert_contains "$("$YWR" restore --auto --dry-run)" "Auto-selected 'home'" "restore --auto selects home"
-
-# signal install/uninstall drive yabai signal add/remove
-: > "$YWR_E2E_YABAI_LOG"
-"$YWR" signal install >/dev/null
-assert_eq "$(grep -c -- '--add' "$YWR_E2E_YABAI_LOG")" "3" "signal install adds 3 signals"
-: > "$YWR_E2E_YABAI_LOG"
-"$YWR" signal uninstall >/dev/null
-assert_eq "$(grep -c -- '--remove' "$YWR_E2E_YABAI_LOG")" "3" "signal uninstall removes 3 signals"
-
 # a native snapshot restores via the native backend even when yabai is available
 "$YWR" snapshot save nat --native >/dev/null 2>&1
 assert_contains "$("$YWR" restore nat 2>&1)" "Native backend" "native snapshot routes to native restore even with yabai up"
