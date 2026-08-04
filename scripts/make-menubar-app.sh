@@ -39,20 +39,50 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# Ad-hoc codesign the bundle. An UNSIGNED bundle is the worst case for TCC:
-# macOS can't form a stable identity for it, so an Accessibility grant often
-# doesn't actually take effect (the toggle shows on but AX calls silently fail).
-# Ad-hoc signing gives a stable designated requirement keyed on the bundle id,
-# so the grant sticks and window moves work.
-echo "codesigning (ad-hoc) ..."
-codesign --force --deep --sign - "${APP}"
+# Codesign the bundle. Prefer a STABLE self-signed identity (if created via
+# scripts/create-signing-cert.sh): it keys the designated requirement on the
+# certificate, so TCC keeps the Accessibility / Screen Recording grant across
+# rebuilds. Without it, fall back to ad-hoc — which works but changes identity on
+# every rebuild, so the grant must be re-added each time.
+SIGN_IDENTITY="${YWR_SIGN_IDENTITY:-ywr-selfsigned}"
+STABLE_SIGNED=0
+# `find-identity -p codesigning` lists identities that have BOTH a certificate
+# and its private key (even self-signed / untrusted ones), so a cert-only import
+# won't be mistaken for a usable identity. Column 2 is the cert's SHA-1 hash.
+# `|| true` so a no-match (grep exit 1) under `set -eo pipefail` leaves the hash
+# empty and falls through to ad-hoc signing instead of aborting the build.
+# Match the quoted CN exactly ("name") so a prefix like ywr-selfsigned can't
+# pick up ywr-selfsigned-old and sign with the wrong certificate.
+IDENTITY_HASH="$(security find-identity -p codesigning 2>/dev/null | grep -F "\"${SIGN_IDENTITY}\"" | head -1 | awk '{print $2}' || true)"
+if [[ -n "${IDENTITY_HASH}" ]]; then
+    # Pin the designated requirement to the bundle id + this certificate leaf, so
+    # it never relies on system trust of the self-signed cert (no "anchor trusted"
+    # to satisfy). TCC then keeps the grant across rebuilds as long as the same
+    # certificate signs the app. Fall back to ad-hoc if signing fails for any
+    # reason rather than aborting the build.
+    BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist")"
+    REQ="=designated => identifier \"${BUNDLE_ID}\" and certificate leaf = H\"${IDENTITY_HASH}\""
+    if codesign --force --deep --sign "${IDENTITY_HASH}" -r "${REQ}" "${APP}" 2>/dev/null; then
+        echo "codesigned with stable identity '${SIGN_IDENTITY}' (grants persist across rebuilds)."
+        STABLE_SIGNED=1
+    fi
+fi
+if [[ "${STABLE_SIGNED}" -eq 0 ]]; then
+    echo "codesigning (ad-hoc) ..."
+    codesign --force --deep --sign - "${APP}"
+fi
 
 echo "built ${APP}"
 echo "  launch it with:  open \"${APP}\""
 echo
 echo "  First run needs Accessibility permission for 'yabai workspaces':"
 echo "    System Settings ▸ Privacy & Security ▸ Accessibility"
-echo "  If it was granted before this rebuild, REMOVE the old 'yabai workspaces'"
-echo "  entry (−) and re-add it — a rebuild invalidates the previous grant."
+if [[ "${STABLE_SIGNED}" -eq 1 ]]; then
+    echo "  (Grant it once; the stable signature keeps the grant across rebuilds.)"
+else
+    echo "  If it was granted before this rebuild, REMOVE the old 'yabai workspaces'"
+    echo "  entry (−) and re-add it — an ad-hoc rebuild invalidates the previous grant."
+    echo "  Tip: run 'bash scripts/create-signing-cert.sh' once to stop this recurring."
+fi
 echo "  (Optional) also grant Screen Recording so window titles are captured,"
 echo "  which improves matching when an app has several windows."

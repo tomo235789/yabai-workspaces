@@ -36,3 +36,6 @@ Icon?
 
 # Module cache produced by sandboxed review tooling (codex/coderabbit)
 /.tmp-clang/
+
+# Local scratch output (screenshots, review transcripts) — never committed
+/scratchpad/
