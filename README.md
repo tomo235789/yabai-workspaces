@@ -39,29 +39,43 @@ flowchart TD
   Accessibility API. This is what makes ywr work in the "spanning desktop"
   configuration where yabai refuses to start.
 
-## Quick start
+## Install
+
+**Menu-bar app** — grab `YabaiWorkspaces.app` from the
+[Releases](https://github.com/tomo235789/yabai-workspaces/releases) page (signed
+& notarized), move it to `/Applications`, open it, and grant **Accessibility**
+when asked. That's the whole setup for the GUI.
+
+**CLI (`ywr`)** — build from source (a Homebrew formula is planned):
 
 ```sh
-# 1. (optional) install yabai for full Space/Display restore. Cross-Space moves
-#    also require its scripting-addition — see the yabai wiki. Without yabai,
-#    ywr uses the native backend (position/size + display, no Space moves).
-brew install koekeishiya/formulae/yabai && yabai --start-service
-
-# 2. build ywr and put it on your PATH
 swift build -c release && mkdir -p ~/.local/bin && cp .build/release/ywr ~/.local/bin/ywr
+ywr doctor          # shows which backend is active
+```
 
-# 3. check your environment (shows which backend is active)
-ywr doctor
+**Optional — yabai** for full Space/Display restore (without it, ywr uses the
+native backend: position/size + display, no Space moves):
 
-# 4. save the current layout, then restore it later
+```sh
+brew install koekeishiya/formulae/yabai && yabai --start-service
+```
+
+Then save and restore:
+
+```sh
 ywr snapshot save home
 ywr restore home            # preview first with: ywr restore home --dry-run
 ```
 
+> Building the app yourself instead? See the
+> [usage guide](docs/usage.md) — `scripts/make-menubar-app.sh` bundles it, and
+> `scripts/create-signing-cert.sh` keeps the Accessibility grant across rebuilds.
+
 Permissions differ by backend: the **native backend** needs **Accessibility**
-granted to whatever runs `ywr` (Terminal, etc.); the **yabai backend** instead
-needs **yabai itself** to have Accessibility, plus its scripting-addition for
-cross-Space moves — `ywr` only shells out to `yabai -m`.
+granted to whatever runs `ywr` (Terminal or the app); the **yabai backend**
+instead needs **yabai itself** to have Accessibility, plus its scripting-addition
+for cross-Space moves — `ywr` only shells out to `yabai -m`. ywr collects no data
+and makes no network requests — see [PRIVACY.md](PRIVACY.md).
 
 ## What restore does
 
@@ -128,7 +142,7 @@ bash scripts/autostart-uninstall.sh   # disable auto-start
 ## Documentation
 
 - **[Usage guide](docs/usage.md)** — every command, the native backend, theming, troubleshooting ([日本語](docs/usage.ja.md))
-- **[Roadmap](ROADMAP.md)** · **[PRD](PRD.md)**
+- **[Privacy](PRIVACY.md)** · **[Changelog](CHANGELOG.md)** · **[Roadmap](ROADMAP.md)** · **[PRD](PRD.md)**
 
 ## Architecture
 
