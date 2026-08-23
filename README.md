@@ -171,5 +171,11 @@ swift package plugin --allow-writing-to-package-directory swiftformat  # format 
 
 ## License
 
-MIT — see [LICENSE](LICENSE). yabai is a separate MIT-licensed project; ywr does
-not include yabai binaries or source.
+**Open-core.** This repository — the ywr core and its free CLI + menu-bar app —
+is **MIT-licensed** (see [LICENSE](LICENSE)); contributions here are under MIT.
+Optional **Pro** features (e.g. automatic layout switching on display changes,
+rules, cloud sync) are a separate commercial add-on, built on top of this core
+and **not part of this repository**.
+
+yabai is a separate MIT-licensed project; ywr does not include yabai binaries or
+source.

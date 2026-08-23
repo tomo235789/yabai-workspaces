@@ -167,5 +167,9 @@ swift package plugin --allow-writing-to-package-directory swiftformat  # 整形
 
 ## ライセンス
 
-MIT — [LICENSE](LICENSE) 参照。yabai は別の MIT ライセンスプロジェクトで、ywr は
-yabai のバイナリやソースを含みません。
+**オープンコア。** 本リポジトリ（ywr のコアと無料の CLI・メニューバーアプリ）は
+**MIT ライセンス**です（[LICENSE](LICENSE) 参照）。ここへの貢献は MIT 扱いになります。
+任意の **Pro 機能**（ディスプレイ変更時の自動レイアウト切替・ルール・クラウド同期など）は
+このコアの上に構築される**別リポジトリの商用アドオン**で、**本リポジトリには含まれません**。
+
+yabai は別の MIT ライセンスプロジェクトで、ywr は yabai のバイナリやソースを含みません。
