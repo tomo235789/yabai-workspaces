@@ -1,0 +1,5 @@
+# Copy to terraform.tfvars and adjust if your owner/repo differ from the defaults.
+# terraform.tfvars is gitignored.
+github_owner  = "tomo235789"
+repository    = "yabai-workspaces"
+ci_check_name = "Build, test & lint"

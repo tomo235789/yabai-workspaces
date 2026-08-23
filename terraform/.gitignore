@@ -1,0 +1,12 @@
+# Terraform state may contain sensitive data — never commit it.
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+crash.*.log
+
+# Real variable values (keep only the .example in git).
+*.tfvars
+!*.tfvars.example
+
+# Keep the provider lock file (.terraform.lock.hcl) committed.

@@ -37,29 +37,42 @@ flowchart TD
   サイズ（**別モニタへの移動も含む**）と最前面ウィンドウを復元します。yabai が起動
   できない「スペースをまたぐ（spanning）」構成でも動くのはこのおかげです。
 
-## クイックスタート
+## インストール
+
+**メニューバーアプリ** — [Releases](https://github.com/tomo235789/yabai-workspaces/releases)
+から `YabaiWorkspaces.app`（署名・公証済み）を入手し、`/Applications` に移動して開き、
+求められたら **アクセシビリティ**を許可してください。GUI はこれだけで使えます。
+
+**CLI（`ywr`）** — ソースからビルド（Homebrew formula は予定）:
 
 ```sh
-# 1.（任意）Space/ディスプレイまで完全復元したいなら yabai を導入。Space 跨ぎには
-#    scripting-addition も必要（yabai wiki 参照）。yabai 無しでも native バックエンドで
-#    位置・サイズ＋ディスプレイは復元できます（Space 移動は不可）。
-brew install koekeishiya/formulae/yabai && yabai --start-service
-
-# 2. ywr をビルドして PATH に配置
 swift build -c release && mkdir -p ~/.local/bin && cp .build/release/ywr ~/.local/bin/ywr
+ywr doctor          # どのバックエンドが有効かを表示
+```
 
-# 3. 環境チェック（どのバックエンドが有効かを表示）
-ywr doctor
+**（任意）yabai** — Space/ディスプレイまで完全復元したい場合（無くても native
+バックエンドで位置・サイズ＋ディスプレイは復元、Space 移動は不可）:
 
-# 4. 現在の配置を保存し、あとで復元
+```sh
+brew install koekeishiya/formulae/yabai && yabai --start-service
+```
+
+保存と復元:
+
+```sh
 ywr snapshot save home
 ywr restore home            # まず確認: ywr restore home --dry-run
 ```
 
+> 自分でアプリをビルドする場合は [使い方ガイド](docs/usage.ja.md) を参照。
+> `scripts/make-menubar-app.sh` でバンドル化、`scripts/create-signing-cert.sh` で
+> 再ビルドをまたいでアクセシビリティ許可を維持できます。
+
 権限はバックエンドで異なります。**native バックエンド**は `ywr` を動かすプロセス
-（ターミナル等）に **Accessibility 権限**が必要。**yabai バックエンド**は代わりに
+（ターミナルやアプリ）に **Accessibility 権限**が必要。**yabai バックエンド**は代わりに
 **yabai 自身**に Accessibility（＋ Space 跨ぎには scripting-addition）が必要です
-（`ywr` は `yabai -m` を呼ぶだけ）。
+（`ywr` は `yabai -m` を呼ぶだけ）。ywr はデータを収集せず、ネットワーク通信もしません
+（[PRIVACY.md](PRIVACY.md) 参照）。
 
 ## 復元の流れ
 
@@ -125,7 +138,7 @@ bash scripts/autostart-uninstall.sh   # 自動起動を無効化
 ## ドキュメント
 
 - **[使い方ガイド](docs/usage.ja.md)** — 全コマンド・native バックエンド・テーマ・トラブルシュート（[English](docs/usage.md)）
-- **[ロードマップ](ROADMAP.md)** · **[PRD](PRD.md)**
+- **[プライバシー](PRIVACY.md)** · **[変更履歴](CHANGELOG.md)** · **[ロードマップ](ROADMAP.md)** · **[PRD](PRD.md)**
 
 ## アーキテクチャ
 
@@ -154,5 +167,9 @@ swift package plugin --allow-writing-to-package-directory swiftformat  # 整形
 
 ## ライセンス
 
-MIT — [LICENSE](LICENSE) 参照。yabai は別の MIT ライセンスプロジェクトで、ywr は
-yabai のバイナリやソースを含みません。
+**オープンコア。** 本リポジトリ（ywr のコアと無料の CLI・メニューバーアプリ）は
+**MIT ライセンス**です（[LICENSE](LICENSE) 参照）。ここへの貢献は MIT 扱いになります。
+任意の **Pro 機能**（ディスプレイ変更時の自動レイアウト切替・ルール・クラウド同期など）は
+このコアの上に構築される**別リポジトリの商用アドオン**で、**本リポジトリには含まれません**。
+
+yabai は別の MIT ライセンスプロジェクトで、ywr は yabai のバイナリやソースを含みません。

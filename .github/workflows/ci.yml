@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build, test & lint
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Unit tests
+        run: swift test
+
+      - name: End-to-end tests
+        run: bash Tests/e2e/run.sh
+
+      - name: Lint (SwiftFormat)
+        run: swift package plugin --allow-writing-to-package-directory swiftformat --lint

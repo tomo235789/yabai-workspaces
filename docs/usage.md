@@ -204,6 +204,21 @@ The copy in `~/Applications` keeps its signature, so the Accessibility grant
 carries over (no re-grant). To rebuild and refresh the installed copy later,
 re-run `scripts/autostart-install.sh`.
 
+**Distributing a signed build (for other machines).** The self-signed bundle
+only runs on your own Mac. To hand the app to others without Gatekeeper warnings
+you need an Apple **Developer ID** certificate + **notarization**. Once you've
+joined the Apple Developer Program and stored notarytool credentials, sign +
+notarize + staple with:
+
+```sh
+export YWR_DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)"
+export YWR_NOTARY_PROFILE="ywr-notary"   # from: xcrun notarytool store-credentials
+bash scripts/release.sh                  # → notarized build/YabaiWorkspaces.zip
+```
+
+Note: the Mac **App Store is not an option** — ywr uses private/Accessibility
+APIs, so distribute via direct download or Homebrew Cask instead.
+
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):
 

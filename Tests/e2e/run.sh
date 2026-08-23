@@ -118,6 +118,9 @@ assert_file "$XDG_CONFIG_HOME/yabai-workspaces/snapshots/home.json" "home surviv
 # unknown command fails
 "$YWR" bogus >/dev/null 2>&1; assert_eq "$?" "1" "unknown command exits non-zero"
 
+# --version prints a version and exits 0
+assert_contains "$("$YWR" --version)" "ywr 0" "--version prints the version"
+
 echo
 echo "e2e: $PASS passed, $FAIL failed"
 [[ "$FAIL" -eq 0 ]]

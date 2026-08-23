@@ -20,6 +20,12 @@ rm -rf "${APP}"
 mkdir -p "${MACOS}"
 cp "${BIN}" "${MACOS}/ywr-menubar"
 
+# App icon (generate once with scripts/make-icon.sh; committed under Resources/).
+if [ -f "${ROOT}/Resources/AppIcon.icns" ]; then
+    mkdir -p "${APP}/Contents/Resources"
+    cp "${ROOT}/Resources/AppIcon.icns" "${APP}/Contents/Resources/AppIcon.icns"
+fi
+
 cat > "${APP}/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -29,8 +35,9 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key>     <string>yabai workspaces</string>
     <key>CFBundleIdentifier</key>      <string>com.tomo235789.yabai-workspaces</string>
     <key>CFBundleVersion</key>         <string>1</string>
-    <key>CFBundleShortVersionString</key> <string>1.0</string>
+    <key>CFBundleShortVersionString</key> <string>0.1.0</string>
     <key>CFBundleExecutable</key>      <string>ywr-menubar</string>
+    <key>CFBundleIconFile</key>        <string>AppIcon</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>  <string>13.0</string>
     <key>LSUIElement</key>             <true/>
@@ -38,6 +45,13 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+
+# Single-source the version: read it from YWRVersion (Sources/YWRCore/Version.swift)
+# so a release only bumps one file.
+VERSION="$(grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' "${ROOT}/Sources/YWRCore/Version.swift" | tr -d '"' | head -1)"
+if [ -n "${VERSION}" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${APP}/Contents/Info.plist"
+fi
 
 # Codesign the bundle. Prefer a STABLE self-signed identity (if created via
 # scripts/create-signing-cert.sh): it keys the designated requirement on the
