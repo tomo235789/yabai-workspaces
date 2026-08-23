@@ -10,6 +10,7 @@ let package = Package(
         .executable(name: "ywr", targets: ["ywr"]),
         .executable(name: "ywr-menubar", targets: ["ywr-menubar"]),
         .executable(name: "ywr-shot", targets: ["ywr-shot"]),
+        .executable(name: "license-keygen", targets: ["license-keygen"]),
         .library(name: "YWRCore", targets: ["YWRCore"]),
         .library(name: "YWRTheme", targets: ["YWRTheme"]),
         .library(name: "YWRMenuUI", targets: ["YWRMenuUI"])
@@ -57,6 +58,13 @@ let package = Package(
             name: "ywr-shot",
             dependencies: ["YWRTheme", "YWRMenuUI"],
             path: "Sources/ywr-shot"
+        ),
+        // Seller-only tool: generate the signing keypair and sign Pro licenses.
+        // Reuses YWRCore's License/LicenseEnvelope so the format can't drift.
+        .executableTarget(
+            name: "license-keygen",
+            dependencies: ["YWRCore"],
+            path: "Sources/license-keygen"
         ),
         .testTarget(
             name: "YWRCoreTests",
