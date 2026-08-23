@@ -9,6 +9,9 @@ let yabai = YabaiClient(runner: runner)
 let paths = Paths()
 
 let store = FileSnapshotStore(paths: paths)
+// Licensing: a valid Pro license at paths.licenseFile lifts free-tier limits;
+// otherwise the free gate applies. Verified offline (no network).
+let licenseGate = LicenseLoader.gate(licenseFileURL: paths.licenseFile)
 let spaceModeDetector = MacOSSpaceModeDetector(runner: runner)
 let capturer = SnapshotCapturer(yabai: yabai, spaceModeDetector: spaceModeDetector)
 let launcher = AppLauncher(runner: runner)
@@ -72,7 +75,7 @@ let doctor = Doctor(checks: [
 
 let registry = CommandRegistry(commands: [
     DoctorCommand(doctor: doctor),
-    SnapshotCommand(capturer: capturer, nativeCapturer: nativeCapturer, availability: availability, store: store),
+    SnapshotCommand(capturer: capturer, nativeCapturer: nativeCapturer, availability: availability, store: store, licenseGate: licenseGate),
     RestoreCommand(store: store, restorer: restorer, nativeRestorer: nativeRestorer, nativeWalker: nativeWalker, availability: availability),
     ProfileCommand(capturer: profileCapturer, store: profileStore),
 ])

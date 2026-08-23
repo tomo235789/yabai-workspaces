@@ -14,12 +14,14 @@ struct SnapshotCommand: Command {
     private let nativeCapturer: NativeCapturer
     private let availability: YabaiAvailabilityChecking
     private let store: SnapshotStore
+    private let licenseGate: LicenseGate
 
-    init(capturer: SnapshotCapturing, nativeCapturer: NativeCapturer, availability: YabaiAvailabilityChecking, store: SnapshotStore) {
+    init(capturer: SnapshotCapturing, nativeCapturer: NativeCapturer, availability: YabaiAvailabilityChecking, store: SnapshotStore, licenseGate: LicenseGate = FreeLicenseGate()) {
         self.capturer = capturer
         self.nativeCapturer = nativeCapturer
         self.availability = availability
         self.store = store
+        self.licenseGate = licenseGate
     }
 
     func run(_ args: [String]) throws -> Int32 {
@@ -49,6 +51,16 @@ struct SnapshotCommand: Command {
     private func save(_ args: [String]) throws -> Int32 {
         guard let snapName = args.first(where: { !$0.hasPrefix("--") }) else {
             throw CLIError.usage("ywr snapshot save <name> [--native]")
+        }
+        // Free-tier snapshot cap (overwriting an existing name is always allowed).
+        // Fail closed: if the count can't be read, don't silently skip the cap.
+        // This is a soft, best-effort cap for a local single-user tool — a
+        // deliberate race between two processes could exceed it by one, which we
+        // accept rather than add cross-process locking to a licensing limit.
+        if !store.exists(name: snapName),
+           try !licenseGate.canSaveNewSnapshot(existingCount: store.list().count)
+        {
+            throw CLIError.message(FreeTierLimitError().description)
         }
         // Use the yabai-independent backend when asked (--native) or when yabai
         // isn't available (e.g. "Displays have separate Spaces" is off).

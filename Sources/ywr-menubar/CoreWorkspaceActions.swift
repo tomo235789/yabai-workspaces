@@ -15,6 +15,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
     private let nativeCapturer: NativeCapturer
     private let nativeRestorer: NativeRestorer
     private let nativeWalker: WalkingNativeRestorer
+    private let licenseGate: LicenseGate
     private let logger: any EventLogging
 
     init(logger: any EventLogging = ConsoleLogger()) {
@@ -22,6 +23,7 @@ actor CoreWorkspaceActions: WorkspaceActions {
         let paths = Paths()
         let client = YabaiClient(runner: runner)
         store = FileSnapshotStore(paths: paths)
+        licenseGate = LicenseLoader.gate(licenseFileURL: paths.licenseFile)
         capturer = SnapshotCapturer(yabai: client, spaceModeDetector: MacOSSpaceModeDetector(runner: runner))
         restorer = SnapshotRestorer(yabai: client, launcher: AppLauncher(runner: runner))
         availability = YabaiAvailability(runner: runner)
@@ -50,6 +52,13 @@ actor CoreWorkspaceActions: WorkspaceActions {
     }
 
     func save(name: String) async throws {
+        // Free-tier snapshot cap (overwriting an existing name is always allowed).
+        // Fail closed: if the count can't be read, don't silently skip the cap.
+        if !store.exists(name: name),
+           try !licenseGate.canSaveNewSnapshot(existingCount: store.list().count)
+        {
+            throw FreeTierLimitError()
+        }
         // Fall back to the yabai-independent backend when yabai isn't running,
         // mirroring the CLI so the menu-bar app works in yabai-less setups too.
         let snapshot: Snapshot = if availability.isAvailable() {
