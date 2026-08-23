@@ -15,7 +15,9 @@
 #
 # --- Required env ---
 #   YWR_DEVELOPER_ID    e.g. "Developer ID Application: Your Name (TEAMID)"
-#   YWR_NOTARY_PROFILE  the notarytool keychain profile name (e.g. ywr-notary)
+#   Notarization credentials — EITHER:
+#     YWR_NOTARY_PROFILE  the notarytool keychain profile name (local use), OR
+#     YWR_NOTARY_APPLE_ID + YWR_NOTARY_TEAM_ID + YWR_NOTARY_PASSWORD  (CI)
 # --- Optional env ---
 #   YWR_ENTITLEMENTS    path to an entitlements plist (usually not needed:
 #                       Accessibility / event posting are TCC-gated, not entitlements)
@@ -24,7 +26,18 @@
 set -euo pipefail
 
 : "${YWR_DEVELOPER_ID:?set YWR_DEVELOPER_ID to your \"Developer ID Application: … (TEAMID)\" identity}"
-: "${YWR_NOTARY_PROFILE:?set YWR_NOTARY_PROFILE to your notarytool keychain profile name}"
+
+# Notarization credentials: either a stored keychain profile (local use), or
+# direct App Store Connect credentials (CI, where no profile exists).
+NOTARY_ARGS=()
+if [ -n "${YWR_NOTARY_PROFILE:-}" ]; then
+    NOTARY_ARGS=(--keychain-profile "${YWR_NOTARY_PROFILE}")
+elif [ -n "${YWR_NOTARY_APPLE_ID:-}" ] && [ -n "${YWR_NOTARY_TEAM_ID:-}" ] && [ -n "${YWR_NOTARY_PASSWORD:-}" ]; then
+    NOTARY_ARGS=(--apple-id "${YWR_NOTARY_APPLE_ID}" --team-id "${YWR_NOTARY_TEAM_ID}" --password "${YWR_NOTARY_PASSWORD}")
+else
+    echo "error: set YWR_NOTARY_PROFILE, or YWR_NOTARY_APPLE_ID + YWR_NOTARY_TEAM_ID + YWR_NOTARY_PASSWORD" >&2
+    exit 1
+fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${ROOT}/build/YabaiWorkspaces.app"
@@ -50,7 +63,7 @@ rm -f "${ZIP}"
 
 # 4) Notarize and block until Apple returns a result.
 echo "==> submitting for notarization (this can take a few minutes)"
-xcrun notarytool submit "${ZIP}" --keychain-profile "${YWR_NOTARY_PROFILE}" --wait
+xcrun notarytool submit "${ZIP}" "${NOTARY_ARGS[@]}" --wait
 
 # 5) Staple the ticket onto the app, then re-zip the stapled app to distribute.
 echo "==> stapling"

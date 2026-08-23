@@ -46,6 +46,13 @@ cat > "${APP}/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
+# Single-source the version: read it from YWRVersion (Sources/YWRCore/Version.swift)
+# so a release only bumps one file.
+VERSION="$(grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' "${ROOT}/Sources/YWRCore/Version.swift" | tr -d '"' | head -1)"
+if [ -n "${VERSION}" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${APP}/Contents/Info.plist"
+fi
+
 # Codesign the bundle. Prefer a STABLE self-signed identity (if created via
 # scripts/create-signing-cert.sh): it keys the designated requirement on the
 # certificate, so TCC keeps the Accessibility / Screen Recording grant across
