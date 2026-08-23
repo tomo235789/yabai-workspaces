@@ -192,6 +192,18 @@ bash scripts/make-menubar-app.sh      # now signs with that identity
 Grant Accessibility once more after the first stable-signed build (the signature
 changed from ad-hoc); after that, rebuilds keep the grant.
 
+**Start it automatically at login.** Install the app to `~/Applications` and
+register a per-user LaunchAgent that opens it at every login:
+
+```sh
+bash scripts/autostart-install.sh     # installs + starts now + starts at login
+bash scripts/autostart-uninstall.sh   # disable auto-start
+```
+
+The copy in `~/Applications` keeps its signature, so the Accessibility grant
+carries over (no re-grant). To rebuild and refresh the installed copy later,
+re-run `scripts/autostart-install.sh`.
+
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):
 

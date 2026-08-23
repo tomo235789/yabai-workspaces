@@ -114,6 +114,14 @@ menu-bar item for a bundled accessory app):
 bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
+**Start it automatically at login** — installs to `~/Applications` and registers
+a LaunchAgent (rerun to refresh after a rebuild):
+
+```sh
+bash scripts/autostart-install.sh     # install + start now + start at login
+bash scripts/autostart-uninstall.sh   # disable auto-start
+```
+
 > Like the CLI, the menu-bar app falls back to the **native backend** when yabai
 > isn't running (save and click-to-restore work).
 

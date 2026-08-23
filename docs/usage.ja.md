@@ -216,6 +216,20 @@ bash scripts/make-menubar-app.sh      # 以後はこの証明書で署名され�
 安定署名での初回ビルド後だけ、署名が変わったのでアクセシビリティをもう一度付与して
 ください。その後は再ビルドしても許可が残ります。
 
+### ログイン時に自動起動する
+
+アプリを `~/Applications` にインストールし、ログイン時に開くユーザ LaunchAgent を
+登録します（Automation 権限のプロンプトは出ません）:
+
+```sh
+bash scripts/autostart-install.sh     # インストール＋今すぐ起動＋ログイン時起動
+bash scripts/autostart-uninstall.sh   # 自動起動を無効化
+```
+
+`~/Applications` のコピーは署名が保たれるため、アクセシビリティ許可はそのまま引き継が
+れます（再付与不要）。後でリビルドして反映したい場合は `scripts/autostart-install.sh`
+を再実行してください。
+
 ### 配色・フォントの変更
 
 メニューバーアプリの配色とフォントは**コードを触らず外部ファイルで**変更できます。

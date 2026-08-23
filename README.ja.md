@@ -111,6 +111,14 @@ swift run ywr-menubar
 bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
+**ログイン時に自動起動** — `~/Applications` にインストールし、LaunchAgent を登録します
+（リビルド後に再実行すれば反映されます）:
+
+```sh
+bash scripts/autostart-install.sh     # インストール＋今すぐ起動＋ログイン時起動
+bash scripts/autostart-uninstall.sh   # 自動起動を無効化
+```
+
 > CLI と同様に、メニューバーアプリも yabai 未起動時は **native バックエンド**へ自動
 > フォールバックします（保存・クリック復元は動作）。
 
