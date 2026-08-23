@@ -42,10 +42,6 @@ private final class FakeActions: WorkspaceActions, @unchecked Sendable {
         return "Restored '\(name)' across desktops"
     }
 
-    func restoreAuto() async throws -> String {
-        restoreResult
-    }
-
     private(set) var deletedNames: [String] = []
     var deleteShouldThrow: Bool = false
     struct DeleteError: Error {}
@@ -106,13 +102,6 @@ final class MenuViewModelTests: XCTestCase {
         await model.restoreAcrossDesktops(name: "home")
         XCTAssertEqual(actions.walkedNames, ["home"])
         XCTAssertEqual(model.status, "Restored 'home' across desktops")
-        XCTAssertFalse(model.isBusy)
-    }
-
-    func testRestoreAutoSetsStatus() async {
-        let model = MenuViewModel(actions: FakeActions(restoreResult: "Restored 'home': 3 moved, 0 failed"))
-        await model.restoreAuto()
-        XCTAssertEqual(model.status, "Restored 'home': 3 moved, 0 failed")
         XCTAssertFalse(model.isBusy)
     }
 
@@ -185,10 +174,6 @@ private final class SlowActions: WorkspaceActions, @unchecked Sendable {
     }
 
     func restoreAcrossDesktops(name _: String) async throws -> String {
-        ""
-    }
-
-    func restoreAuto() async throws -> String {
         ""
     }
 

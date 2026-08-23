@@ -24,6 +24,13 @@ if [[ "${1:-}" == "-m" && "${2:-}" == "query" ]]; then
   exit 0
 fi
 
+# `signal --list` is a read, not a control op — return an empty JSON array
+# without logging (used by the one-time stale-signal migration).
+if [[ "${1:-}" == "-m" && "${2:-}" == "signal" && "${3:-}" == "--list" ]]; then
+  echo "[]"
+  exit 0
+fi
+
 # Any non-query invocation is a control op: record it and succeed.
 echo "$*" >> "$LOG"
 exit 0

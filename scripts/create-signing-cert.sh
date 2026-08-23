@@ -46,19 +46,38 @@ keyUsage = critical,digitalSignature
 extendedKeyUsage = critical,codeSigning
 CNF
 
-openssl req -x509 -newkey rsa:2048 -nodes \
+if ! openssl req -x509 -newkey rsa:2048 -nodes \
     -keyout "${TMP}/key.pem" -out "${TMP}/cert.pem" \
-    -days 3650 -config "${TMP}/openssl.cnf" >/dev/null 2>&1
+    -days 3650 -config "${TMP}/openssl.cnf" 2>"${TMP}/req.err"; then
+    echo "error: certificate generation failed:" >&2
+    cat "${TMP}/req.err" >&2
+    exit 1
+fi
 
-# Apple's Security framework only reads legacy PKCS#12 (SHA1 MAC / 3DES); the
-# password is transient — it just protects this temporary transport file.
+# Apple's Security framework only reads legacy PKCS#12 (SHA1 MAC / 3DES). OpenSSL
+# 3 (e.g. Homebrew) disables those by default and needs -legacy; LibreSSL (the
+# system openssl) has no -legacy flag but supports them natively. Add the flag
+# only when this openssl advertises it, and surface any export error.
 P12_PW="ywr-transient"
-openssl pkcs12 -export -inkey "${TMP}/key.pem" -in "${TMP}/cert.pem" \
+# String (not array) so an empty value expands to nothing under bash 3.2 + set -u;
+# "-legacy" has no spaces, so the unquoted expansion below is safe.
+LEGACY=""
+if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+    LEGACY="-legacy"
+fi
+# shellcheck disable=SC2086
+if ! openssl pkcs12 -export -inkey "${TMP}/key.pem" -in "${TMP}/cert.pem" \
     -out "${TMP}/id.p12" -passout "pass:${P12_PW}" -name "${CERT_NAME}" \
-    -macalg sha1 -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES >/dev/null 2>&1
+    -macalg sha1 -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES ${LEGACY} 2>"${TMP}/p12.err"; then
+    echo "error: PKCS#12 export failed:" >&2
+    cat "${TMP}/p12.err" >&2
+    exit 1
+fi
 
-# -T /usr/bin/codesign pre-authorises codesign to use the key without prompting.
-LOGIN_KEYCHAIN="$(security default-keychain | tr -d ' "')"
+# Import into the LOGIN keychain specifically (default-keychain is not always the
+# login keychain). -T /usr/bin/codesign pre-authorises codesign without a prompt.
+LOGIN_KEYCHAIN="$(security login-keychain 2>/dev/null | tr -d ' "')"
+[ -n "${LOGIN_KEYCHAIN}" ] || LOGIN_KEYCHAIN="${HOME}/Library/Keychains/login.keychain-db"
 security import "${TMP}/id.p12" -k "${LOGIN_KEYCHAIN}" -P "${P12_PW}" -T /usr/bin/codesign >/dev/null
 
 echo "created code-signing certificate '${CERT_NAME}' in ${LOGIN_KEYCHAIN}"

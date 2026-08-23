@@ -64,35 +64,7 @@ ywr snapshot list             # list saved snapshots
 
 ---
 
-## 4. Auto-restore
-
-Two ways to restore automatically when the display setup changes — pick one.
-
-**Pick the closest snapshot now:**
-
-```sh
-ywr restore --auto
-ywr restore --auto --dry-run
-```
-
-**Daemon (polling):**
-
-```sh
-ywr daemon                 # default 2s interval
-ywr daemon --interval 5    # 5s interval; Ctrl-C to stop
-```
-
-**yabai signals (event-driven, no daemon):**
-
-```sh
-ywr signal install     # register display_added/removed/moved → restore --auto
-ywr signal list
-ywr signal uninstall
-```
-
----
-
-## 5. Display profiles
+## 4. Display profiles
 
 ```sh
 ywr profile capture home   # record the current display configuration
@@ -101,7 +73,7 @@ ywr profile list
 
 ---
 
-## 6. What restore does
+## 5. What restore does
 
 - Moves windows to their saved **Display / Space**
 - Restores position/size via **relative coordinates** (survives resolution changes)
@@ -156,7 +128,7 @@ What it does / limits:
 - ✅ Brings the window that was **frontmost** at capture time back to the front.
 - ✅ Regular GUI apps only (system/helper windows are dropped); Electron/Chromium supported.
 - ❌ **No Space assignment** — geometry-only, a limit of the public APIs.
-- ❌ `--auto` / `--create-spaces` require yabai and are rejected in native mode.
+- ❌ `--create-spaces` requires yabai and is rejected in native mode.
 - ⚠️ Needs **Accessibility** permission. Granting **Screen Recording** too improves
   matching same-title windows across app restarts.
 
@@ -184,9 +156,9 @@ ywr restore home --native --walk-spaces
 
 ---
 
-## 7. Menu-bar app
+## 6. Menu-bar app
 
-A SwiftUI menu-bar app mirrors the CLI (save + auto-restore):
+A SwiftUI menu-bar app mirrors the CLI (save + restore):
 
 ```sh
 swift run ywr-menubar
@@ -220,6 +192,18 @@ bash scripts/make-menubar-app.sh      # now signs with that identity
 Grant Accessibility once more after the first stable-signed build (the signature
 changed from ad-hoc); after that, rebuilds keep the grant.
 
+**Start it automatically at login.** Install the app to `~/Applications` and
+register a per-user LaunchAgent that opens it at every login:
+
+```sh
+bash scripts/autostart-install.sh     # installs + starts now + starts at login
+bash scripts/autostart-uninstall.sh   # disable auto-start
+```
+
+The copy in `~/Applications` keeps its signature, so the Accessibility grant
+carries over (no re-grant). To rebuild and refresh the installed copy later,
+re-run `scripts/autostart-install.sh`.
+
 **Colors and fonts** are set in an external file — no code changes. Drop
 `~/.config/yabai-workspaces/theme.json` (built-in dark default if absent):
 
@@ -238,7 +222,7 @@ changed from ad-hoc); after that, rebuilds keep the grant.
 
 ---
 
-## 8. Where data lives
+## 7. Where data lives
 
 Everything is JSON under `$XDG_CONFIG_HOME/yabai-workspaces`
 (default `~/.config/yabai-workspaces`):
@@ -249,7 +233,7 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 
 ---
 
-## 9. Command reference
+## 8. Command reference
 
 | Command | Description |
 |---|---|
@@ -258,18 +242,15 @@ snapshots/<name>.json    profiles/<name>.json    theme.json (optional)
 | `ywr snapshot list` | List saved snapshots |
 | `ywr snapshot delete <name>` | Delete a saved snapshot |
 | `ywr restore <name> [--dry-run]` | Restore (preview with `--dry-run`) |
-| `ywr restore --auto` | Auto-pick the matching snapshot |
 | `ywr restore <name> --create-spaces` | Create missing Spaces, then restore |
 | `ywr restore <name> --positions-only` | Geometry only; no Space/display moves |
 | `ywr restore <name> --native --walk-spaces` | Restore across all desktops (walks Spaces) |
 | `ywr snapshot save <name> --native` / `ywr restore <name> --native` | Save/restore geometry without yabai |
 | `ywr profile capture <name>` / `list` | Record / list display profiles |
-| `ywr daemon [--interval <s>]` | Auto-restore by polling |
-| `ywr signal` <install\|uninstall\|list> | Auto-restore via yabai signals |
 
 ---
 
-## 10. Troubleshooting
+## 9. Troubleshooting
 
 - **`command not found: ywr`** — not on PATH: `swift build -c release && cp .build/release/ywr ~/.local/bin/ywr`.
 - **`doctor` shows ✗** — yabai not installed/running: `brew install ... yabai`, `yabai --start-service`.

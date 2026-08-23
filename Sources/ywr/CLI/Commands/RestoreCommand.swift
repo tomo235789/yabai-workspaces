@@ -3,9 +3,9 @@ import YWRCore
 
 struct RestoreCommand: Command {
     let name = "restore"
-    let summary = "Restore a saved layout (use --dry-run to preview, --auto to pick)"
+    let summary = "Restore a saved layout (use --dry-run to preview)"
     var usage: String {
-        "ywr restore <name>|--auto [--dry-run] [--create-spaces] [--positions-only] [--native] [--walk-spaces]"
+        "ywr restore <name> [--dry-run] [--create-spaces] [--positions-only] [--native] [--walk-spaces]"
     }
 
     private let store: SnapshotStore
@@ -13,22 +13,17 @@ struct RestoreCommand: Command {
     private let nativeRestorer: NativeRestorer
     private let nativeWalker: WalkingNativeRestorer
     private let availability: YabaiAvailabilityChecking
-    private let yabai: YabaiQuerying
-    private let autoSelector: AutoSelector
 
-    init(store: SnapshotStore, restorer: SnapshotRestorer, nativeRestorer: NativeRestorer, nativeWalker: WalkingNativeRestorer, availability: YabaiAvailabilityChecking, yabai: YabaiQuerying, autoSelector: AutoSelector = AutoSelector()) {
+    init(store: SnapshotStore, restorer: SnapshotRestorer, nativeRestorer: NativeRestorer, nativeWalker: WalkingNativeRestorer, availability: YabaiAvailabilityChecking) {
         self.store = store
         self.restorer = restorer
         self.nativeRestorer = nativeRestorer
         self.nativeWalker = nativeWalker
         self.availability = availability
-        self.yabai = yabai
-        self.autoSelector = autoSelector
     }
 
     func run(_ args: [String]) throws -> Int32 {
         let dryRun = args.contains("--dry-run")
-        let auto = args.contains("--auto")
         let createSpaces = args.contains("--create-spaces")
         let positionsOnly = args.contains("--positions-only")
         let nativeFlag = args.contains("--native")
@@ -36,22 +31,6 @@ struct RestoreCommand: Command {
 
         if createSpaces && positionsOnly {
             throw CLIError.message("--create-spaces cannot be combined with --positions-only (positions-only does not touch Spaces).")
-        }
-        // --walk-spaces is native-only; --auto is yabai-only. They can't combine.
-        if auto && args.contains("--walk-spaces") {
-            throw CLIError.message("--walk-spaces cannot be combined with --auto (--auto needs the yabai backend; walking Spaces is native-only).")
-        }
-
-        // --auto needs the yabai backend (it matches on display fingerprints).
-        if auto {
-            if nativeFlag || yabaiDown {
-                throw CLIError.message("--auto requires the yabai backend (needs display fingerprints).")
-            }
-            guard let selected = try resolveAuto() else { return 1 }
-            if dryRun {
-                return try previewPlan(for: selected, createSpaces: createSpaces, positionsOnly: positionsOnly)
-            }
-            return try executeRestore(selected, createSpaces: createSpaces, positionsOnly: positionsOnly)
         }
 
         // Restore by name.
@@ -116,29 +95,6 @@ struct RestoreCommand: Command {
             }
         }
         return 1
-    }
-
-    /// Uses gemma-authored `AutoSelector` to pick the snapshot matching the
-    /// current displays. Returns nil (with a printed reason) when there's no
-    /// confident choice.
-    private func resolveAuto() throws -> Snapshot? {
-        let displays = try yabai.queryDisplays()
-        let snapshots = try store.loadAll()
-        switch autoSelector.select(from: snapshots, currentDisplays: displays) {
-        case let .confident(scored):
-            print("Auto-selected '\(scored.snapshot.name)' (match score \(scored.score))")
-            return scored.snapshot
-        case let .ambiguous(candidates):
-            print("Ambiguous — no single close match. Candidates:")
-            for c in candidates {
-                print("  • \(c.snapshot.name) (score \(c.score), \(c.snapshot.displayProfile.fingerprint))")
-            }
-            print("\nRe-run with an explicit name: ywr restore <name>")
-            return nil
-        case .none:
-            print("No snapshots to choose from. Create one with `ywr snapshot save <name>`.")
-            return nil
-        }
     }
 
     private func previewPlan(for snapshot: Snapshot, createSpaces: Bool, positionsOnly: Bool) throws -> Int32 {

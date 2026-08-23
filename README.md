@@ -95,27 +95,13 @@ it can't place are listed at the end — nothing fails silently.
 Force the native backend anytime with `--native`
 (e.g. `ywr restore home --native`).
 
-## Auto-restore
-
-Restore automatically when your displays change — pick whichever you like.
-**These require the yabai backend** (they use yabai's display info/events and
-are not available in the native, yabai-less setup):
-
-```sh
-ywr restore --auto        # pick the snapshot matching the current displays
-ywr daemon                # watch for display changes and auto-restore (polling)
-ywr signal install        # let yabai fire restore on display events (no daemon)
-```
-
-Without yabai, restore an explicit snapshot by name: `ywr restore home --native`.
-
 ## Menu-bar app
 
 `ywr-menubar` mirrors the CLI in a SwiftUI menu-bar popover: type a name to
 save, **click a saved layout** to restore it (in native mode, on the current
 desktop), use its **▦ button** to restore across **all desktops** (walks Spaces —
-see below), re-save it in place with 🔄, delete one with 🗑 (with a confirmation),
-or hit **Restore (auto)**. Colors and fonts come from an external `theme.json`.
+see below), re-save it in place with 🔄, or delete one with 🗑 (with a
+confirmation). Colors and fonts come from an external `theme.json`.
 
 ```sh
 swift run ywr-menubar
@@ -128,8 +114,16 @@ menu-bar item for a bundled accessory app):
 bash scripts/make-menubar-app.sh && open build/YabaiWorkspaces.app
 ```
 
+**Start it automatically at login** — installs to `~/Applications` and registers
+a LaunchAgent (rerun to refresh after a rebuild):
+
+```sh
+bash scripts/autostart-install.sh     # install + start now + start at login
+bash scripts/autostart-uninstall.sh   # disable auto-start
+```
+
 > Like the CLI, the menu-bar app falls back to the **native backend** when yabai
-> isn't running (save and click-to-restore work; **Restore (auto)** needs yabai).
+> isn't running (save and click-to-restore work).
 
 ## Documentation
 

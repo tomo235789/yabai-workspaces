@@ -54,13 +54,15 @@ STABLE_SIGNED=0
 # Match the quoted CN exactly ("name") so a prefix like ywr-selfsigned can't
 # pick up ywr-selfsigned-old and sign with the wrong certificate.
 IDENTITY_HASH="$(security find-identity -p codesigning 2>/dev/null | grep -F "\"${SIGN_IDENTITY}\"" | head -1 | awk '{print $2}' || true)"
-if [[ -n "${IDENTITY_HASH}" ]]; then
+# `|| true` so a PlistBuddy failure under `set -e` doesn't abort before the
+# ad-hoc fallback (an empty BUNDLE_ID just skips the stable-signing branch).
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist" 2>/dev/null || true)"
+if [[ -n "${IDENTITY_HASH}" && -n "${BUNDLE_ID}" ]]; then
     # Pin the designated requirement to the bundle id + this certificate leaf, so
     # it never relies on system trust of the self-signed cert (no "anchor trusted"
     # to satisfy). TCC then keeps the grant across rebuilds as long as the same
     # certificate signs the app. Fall back to ad-hoc if signing fails for any
     # reason rather than aborting the build.
-    BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist")"
     REQ="=designated => identifier \"${BUNDLE_ID}\" and certificate leaf = H\"${IDENTITY_HASH}\""
     if codesign --force --deep --sign "${IDENTITY_HASH}" -r "${REQ}" "${APP}" 2>/dev/null; then
         echo "codesigned with stable identity '${SIGN_IDENTITY}' (grants persist across rebuilds)."

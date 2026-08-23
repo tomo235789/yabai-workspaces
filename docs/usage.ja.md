@@ -81,50 +81,7 @@ ywr snapshot list
 
 ---
 
-## 4. 自動で戻す
-
-構成が変わったとき（外部ディスプレイの抜き差しなど）に自動で復元する方法が
-2 つあります。どちらか好みで選べます。
-
-### 4-1. その場で自動選択
-
-現在のディスプレイ構成に最も近いスナップショットを自動で選んで復元します。
-
-```sh
-ywr restore --auto
-ywr restore --auto --dry-run   # 何が選ばれるか確認だけ
-```
-
-一致度が高ければ即復元、あいまいなら候補を提示します。
-
-### 4-2. デーモン（ポーリング）
-
-ディスプレイ変更を一定間隔で監視し、変化したら `restore --auto` を実行します。
-
-```sh
-ywr daemon                 # 既定 2 秒間隔
-ywr daemon --interval 5    # 5 秒間隔
-```
-
-フォアグラウンドで動き続けます。停止は Ctrl-C。
-
-### 4-3. yabai シグナル（イベント駆動、デーモン不要）
-
-yabai 自身にディスプレイイベントを監視させ、変化時に `ywr restore --auto` を
-実行させます。常駐プロセスが不要です。
-
-```sh
-ywr signal install     # display_added / display_removed / display_moved を登録
-ywr signal list        # 登録するシグナルを表示
-ywr signal uninstall   # 登録を解除
-```
-
-> デーモンとシグナルは同じ「自動復元」を実現する別方式です。両方同時に使う必要は
-> ありません。
-
----
-
-## 5. ディスプレイプロファイル
+## 4. ディスプレイプロファイル
 
 ディスプレイ構成そのものを記録・確認できます（fingerprint 付き）。
 
@@ -135,7 +92,7 @@ ywr profile list
 
 ---
 
-## 6. 復元でできること
+## 5. 復元でできること
 
 `restore` は以下を復元します:
 
@@ -196,7 +153,7 @@ native バックエンドでできること・制約:
 - ✅ 保存時に**最前面**だったウィンドウを前面に戻す
 - ✅ 通常の GUI アプリのみ対象（システム/ヘルパーは自動除外）、Electron/Chromium も対応
 - ❌ **Space（仮想デスクトップ）への割り当ては不可**（公開 API の制約による geometry-only）
-- ❌ `--auto` / `--create-spaces` は yabai 専用（native では使えません）
+- ❌ `--create-spaces` は yabai 専用（native では使えません）
 - ⚠️ **Accessibility 権限**が必須。加えて**画面収録**権限を付与すると、アプリ再起動を
   またぐ際の同名ウィンドウの識別精度が上がります。
 
@@ -223,9 +180,9 @@ ywr restore home --native --walk-spaces
 
 ---
 
-## 7. メニューバーアプリ
+## 6. メニューバーアプリ
 
-CLI と同じ操作（保存・自動復元）を GUI から行えるメニューバーアプリ
+CLI と同じ操作（保存・復元）を GUI から行えるメニューバーアプリ
 （`ywr-menubar`）もあります。
 
 ```sh
@@ -259,6 +216,20 @@ bash scripts/make-menubar-app.sh      # 以後はこの証明書で署名され�
 安定署名での初回ビルド後だけ、署名が変わったのでアクセシビリティをもう一度付与して
 ください。その後は再ビルドしても許可が残ります。
 
+### ログイン時に自動起動する
+
+アプリを `~/Applications` にインストールし、ログイン時に開くユーザ LaunchAgent を
+登録します（Automation 権限のプロンプトは出ません）:
+
+```sh
+bash scripts/autostart-install.sh     # インストール＋今すぐ起動＋ログイン時起動
+bash scripts/autostart-uninstall.sh   # 自動起動を無効化
+```
+
+`~/Applications` のコピーは署名が保たれるため、アクセシビリティ許可はそのまま引き継が
+れます（再付与不要）。後でリビルドして反映したい場合は `scripts/autostart-install.sh`
+を再実行してください。
+
 ### 配色・フォントの変更
 
 メニューバーアプリの配色とフォントは**コードを触らず外部ファイルで**変更できます。
@@ -281,7 +252,7 @@ bash scripts/make-menubar-app.sh      # 以後はこの証明書で署名され�
 
 ---
 
-## 8. 保存場所
+## 7. 保存場所
 
 すべて `$XDG_CONFIG_HOME/yabai-workspaces`（既定は `~/.config/yabai-workspaces`）
 配下に JSON で保存されます。
@@ -295,7 +266,7 @@ bash scripts/make-menubar-app.sh      # 以後はこの証明書で署名され�
 
 ---
 
-## 9. コマンド早見表
+## 8. コマンド早見表
 
 | コマンド | 説明 |
 |---|---|
@@ -305,19 +276,16 @@ bash scripts/make-menubar-app.sh      # 以後はこの証明書で署名され�
 | `ywr snapshot delete <name>` | 保存済みスナップショットを削除 |
 | `ywr restore <name>` | 復元 |
 | `ywr restore <name> --dry-run` | 復元内容をプレビュー |
-| `ywr restore --auto` | 現構成に一致する snapshot を自動選択して復元 |
 | `ywr restore <name> --create-spaces` | 不足 Space を作成してから復元 |
 | `ywr restore <name> --positions-only` | Space/Display 移動なし、位置・サイズのみ復元 |
 | `ywr restore <name> --native --walk-spaces` | 全デスクトップに復元（Space を巡回） |
 | `ywr snapshot save <name> --native` / `ywr restore <name> --native` | yabai を使わず位置・サイズを保存/復元 |
 | `ywr profile capture <name>` | ディスプレイ構成を記録 |
 | `ywr profile list` | プロファイル一覧 |
-| `ywr daemon [--interval <秒>]` | ポーリングで自動復元 |
-| `ywr signal` <install\|uninstall\|list> | yabai シグナルで自動復元 |
 
 ---
 
-## 10. うまくいかないとき
+## 9. うまくいかないとき
 
 - **`command not found: ywr`** → バイナリが PATH に無い。`swift build -c release`
   後に `cp .build/release/ywr ~/.local/bin/ywr`。
