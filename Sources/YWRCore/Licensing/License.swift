@@ -71,15 +71,32 @@ public struct SignedLicenseGate: LicenseGate {
     }
 }
 
-/// Loads and verifies the license file, returning a `SignedLicenseGate` when it
-/// is present, correctly signed, and unexpired — otherwise `FreeLicenseGate`.
-/// Never throws: any problem means the free tier.
+/// Imposes no limits. Used before monetization is configured (no public key
+/// embedded) so that, until a Pro offering with a working upgrade path exists,
+/// nobody is stranded on the free-tier cap.
+public struct UnlimitedLicenseGate: LicenseGate {
+    public init() {}
+    public var tier: Tier {
+        .pro
+    }
+}
+
+/// Resolves the active gate from the license file:
+/// - No public key configured yet (monetization not live) → `UnlimitedLicenseGate`
+///   (no limits, so users aren't capped without a way to upgrade).
+/// - Configured + a correctly-signed, unexpired license → `SignedLicenseGate`.
+/// - Configured, otherwise → `FreeLicenseGate`.
+/// Never throws: any problem downgrades to the free tier.
 public enum LicenseLoader {
     public static func gate(
         licenseFileURL: URL,
         publicKeyBase64: String = LicensePublicKey.base64,
         now: Date = Date()
     ) -> LicenseGate {
+        // Until a real public key is embedded, the paid path can't work — so
+        // don't enforce any paid limits.
+        guard !publicKeyBase64.isEmpty else { return UnlimitedLicenseGate() }
+
         guard let verifier = try? LicenseVerifier(publicKeyBase64: publicKeyBase64),
               let data = try? Data(contentsOf: licenseFileURL),
               let envelope = try? JSONDecoder().decode(LicenseEnvelope.self, from: data),

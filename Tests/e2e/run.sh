@@ -121,6 +121,13 @@ assert_file "$XDG_CONFIG_HOME/yabai-workspaces/snapshots/home.json" "home surviv
 # --version prints a version and exits 0
 assert_contains "$("$YWR" --version)" "ywr 0" "--version prints the version"
 
+# Snapshot cap: with no public key embedded (monetization not configured), there
+# is NO cap — a 4th snapshot saves fine. The cap only activates once a real
+# license public key ships; the cap LOGIC itself is covered by unit tests.
+CAP_CFG="$WORK/capcfg"; mkdir -p "$CAP_CFG"
+for n in one two three; do XDG_CONFIG_HOME="$CAP_CFG" "$YWR" snapshot save "$n" >/dev/null 2>&1; done
+assert_contains "$(XDG_CONFIG_HOME="$CAP_CFG" "$YWR" snapshot save four 2>&1)" "Saved snapshot" "no snapshot cap until Pro is configured"
+
 echo
 echo "e2e: $PASS passed, $FAIL failed"
 [[ "$FAIL" -eq 0 ]]

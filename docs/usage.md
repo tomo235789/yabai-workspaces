@@ -62,6 +62,11 @@ ywr restore home              # move windows back into place
 ywr snapshot list             # list saved snapshots
 ```
 
+**Free tier & Pro.** The free tier keeps up to **3 snapshots** (overwriting an
+existing one is always allowed). A **Pro** license lifts the cap (and unlocks
+upcoming Pro features). Licenses are verified **offline** — drop the license file
+at `~/.config/yabai-workspaces/license.json`; nothing is sent over the network.
+
 ---
 
 ## 4. Display profiles

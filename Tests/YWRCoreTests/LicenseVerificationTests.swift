@@ -63,9 +63,19 @@ final class LicenseVerificationTests: XCTestCase {
         XCTAssertEqual(gate.tier, .free)
     }
 
-    func testMissingFileIsFree() {
+    func testUnconfiguredKeyImposesNoLimits() {
+        // Empty public key = monetization not live yet → no cap, no stranded users.
         let gate = LicenseLoader.gate(licenseFileURL: tempURL(), publicKeyBase64: "")
+        XCTAssertTrue(gate.canSaveNewSnapshot(existingCount: 999))
+        XCTAssertTrue(gate.isEntitled(to: .unlimitedSnapshots))
+    }
+
+    func testConfiguredButMissingFileIsFree() {
+        // A real key is configured but no license present → free tier (capped).
+        let key = Curve25519.Signing.PrivateKey().publicKey.rawRepresentation.base64EncodedString()
+        let gate = LicenseLoader.gate(licenseFileURL: tempURL(), publicKeyBase64: key)
         XCTAssertEqual(gate.tier, .free)
+        XCTAssertFalse(gate.canSaveNewSnapshot(existingCount: LicenseLimits.freeSnapshotLimit))
     }
 
     func testFreeSnapshotCapAndProLift() {
