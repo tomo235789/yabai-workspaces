@@ -3,7 +3,7 @@
 // build injects a real gate via `ProProvider`. Defining these types in the open
 // core lets Pro features plug in later without changing the free build.
 
-public enum Tier: String, Sendable, Equatable, CaseIterable {
+public enum Tier: String, Sendable, Equatable, CaseIterable, Codable {
     case free
     case pro
 }

@@ -36,6 +36,12 @@ public struct Paths: Sendable {
         profilesDir.appendingPathComponent("\(name).json")
     }
 
+    /// Where a Pro license (if any) lives. A signed license dropped here lifts
+    /// the free-tier limits; absent/invalid means the free tier.
+    public var licenseFile: URL {
+        root.appendingPathComponent("license.json")
+    }
+
     /// A snapshot/profile name must be a single, safe path component — reject
     /// anything with path separators, `..`, NUL, or leading dots so a name can
     /// never escape `snapshotsDir` / `profilesDir` (path traversal).
