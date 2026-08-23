@@ -230,6 +230,21 @@ bash scripts/autostart-uninstall.sh   # 自動起動を無効化
 れます（再付与不要）。後でリビルドして反映したい場合は `scripts/autostart-install.sh`
 を再実行してください。
 
+### 署名済みビルドの配布（他の Mac へ渡す）
+
+自己署名バンドルは自分の Mac でしか動きません。Gatekeeper の警告なしに他人へ配るには、
+Apple の **Developer ID 証明書**＋**notarization** が必要です。Apple Developer Program
+に登録し notarytool 認証情報を保存したうえで、署名→公証→staple を実行します:
+
+```sh
+export YWR_DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)"
+export YWR_NOTARY_PROFILE="ywr-notary"   # xcrun notarytool store-credentials で作成
+bash scripts/release.sh                  # → 公証済み build/YabaiWorkspaces.zip
+```
+
+補足: **Mac App Store は不可**（非公開/アクセシビリティ API を使うため）。直接ダウンロード
+または Homebrew Cask で配布してください。
+
 ### 配色・フォントの変更
 
 メニューバーアプリの配色とフォントは**コードを触らず外部ファイルで**変更できます。
