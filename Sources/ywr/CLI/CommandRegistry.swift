@@ -1,4 +1,5 @@
 import Foundation
+import YWRCore
 
 /// Dispatches the top-level argument to a registered command. Holds command
 /// instances so the concrete wiring lives entirely in the composition root.
@@ -21,6 +22,10 @@ struct CommandRegistry {
         }
         if first == "-h" || first == "--help" || first == "help" {
             printHelp()
+            return 0
+        }
+        if first == "-v" || first == "--version" || first == "version" {
+            print("ywr \(YWRVersion.current)")
             return 0
         }
         guard let command = command(named: first) else {
